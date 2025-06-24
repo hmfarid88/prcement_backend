@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,6 +39,8 @@ import com.example.bake_boss_backend.repository.SupplierNameRepository;
 import com.example.bake_boss_backend.repository.TransportRepository;
 import com.example.bake_boss_backend.service.ProductStockService;
 import com.example.bake_boss_backend.service.RetailerBalanceService;
+
+import jakarta.transaction.Transactional;
 
 @RestController
 @RequestMapping("/api")
@@ -148,6 +151,60 @@ public class ProductController {
             errorResponse.put("message", e.getMessage());
             return ResponseEntity.status(400).body(errorResponse);
         }
+    }
+
+    @PutMapping("/updateEmployeeInfo/{id}")
+    public ResponseEntity<?> updateEmployeeInfo(@PathVariable Long id, @RequestBody EmployeeInfo employeeInfo) {
+        try {
+            EmployeeInfo updatedEmployee = retailerBalanceService.updateEmployeeInfo(id, employeeInfo);
+            return ResponseEntity.ok(updatedEmployee);
+        } catch (RuntimeException e) {
+            // Return a response with the error message
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(400).body(errorResponse);
+        }
+    }
+
+    @DeleteMapping("/deleteEmployeeById/{id}")
+    public ResponseEntity<String> deleteEmployeeById(@PathVariable Long id) {
+        if (employeeInfoRepository.existsById(id)) {
+            employeeInfoRepository.deleteById(id);
+            return ResponseEntity.ok("Employee deleted successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Employee not found.");
+        }
+    }
+
+    @Transactional
+    @DeleteMapping("/deletePaymentName")
+    public ResponseEntity<String> deletePaymentName(@RequestParam String paymentPerson) {
+        paymentNameRepository.deleteByPaymentPerson(paymentPerson);
+        return ResponseEntity.ok("Name deleted successfully.");
+    }
+
+    @Transactional
+    @DeleteMapping("/deleteSupplierName")
+    public ResponseEntity<String> deleteSupplierName(@RequestParam String supplierName) {
+        supplierNameRepository.deleteBySupplierName(supplierName);
+        return ResponseEntity.ok("Name deleted successfully.");
+
+    }
+
+    @Transactional
+    @DeleteMapping("/deleteProductName")
+    public ResponseEntity<String> deleteProductName(@RequestParam String productName) {
+        productNameRepository.deleteByProductName(productName);
+        return ResponseEntity.ok("Name deleted successfully.");
+
+    }
+
+    @Transactional
+    @DeleteMapping("/deleteTransportName")
+    public ResponseEntity<String> deleteTransportName(@RequestParam String transport) {
+        transportRepository.deleteByTransport(transport);
+        return ResponseEntity.ok("Name deleted successfully.");
+
     }
 
     @PutMapping("/updateSaleInfo/{productId}")
@@ -263,6 +320,11 @@ public class ProductController {
     @GetMapping("/getRetailerInfoByRetailer")
     public RetailerInfo getRetailerInfo(@RequestParam String retailerName) {
         return retailerInfoRepository.findByRetailerName(retailerName);
+    }
+
+    @GetMapping("/getEmployeeInfoByEmployee")
+    public EmployeeInfo getEmployeeInfo(@RequestParam String employeeName) {
+        return employeeInfoRepository.findByEmployeeName(employeeName);
     }
 
     @GetMapping("/getSalesRetailerInfo")

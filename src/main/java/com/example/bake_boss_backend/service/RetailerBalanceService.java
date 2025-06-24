@@ -12,8 +12,10 @@ import org.springframework.stereotype.Service;
 import com.example.bake_boss_backend.dto.RetailerBalanceDTO;
 import com.example.bake_boss_backend.dto.RetailerDetailsDTO;
 import com.example.bake_boss_backend.entity.ClosingSetup;
+import com.example.bake_boss_backend.entity.EmployeeInfo;
 import com.example.bake_boss_backend.entity.RetailerInfo;
 import com.example.bake_boss_backend.repository.ClosingSetupRepository;
+import com.example.bake_boss_backend.repository.EmployeeInfoRepository;
 import com.example.bake_boss_backend.repository.ProductStockrepository;
 import com.example.bake_boss_backend.repository.RetailerCommissionRepository;
 import com.example.bake_boss_backend.repository.RetailerInfoRepository;
@@ -29,6 +31,9 @@ public class RetailerBalanceService {
 
     @Autowired
     private RetailerInfoRepository retailerInfoRepository;
+    
+    @Autowired
+    private EmployeeInfoRepository employeeInfoRepository;
     
     @Autowired
     private ProductStockrepository productStockrepository;
@@ -219,6 +224,34 @@ public class RetailerBalanceService {
             return retailerInfoRepository.save(existingRetailer);
         } else {
             throw new RuntimeException("Retailer not found with ID: " + id);
+        }
+    } 
+
+    public EmployeeInfo updateEmployeeInfo(Long id, EmployeeInfo updatedEmployeeInfo) {
+        Optional<EmployeeInfo> existingRetailerOpt = employeeInfoRepository.findById(id);
+    
+        if (existingRetailerOpt.isPresent()) {
+            EmployeeInfo existingRetailer = existingRetailerOpt.get();
+    
+            // Check if the updated retailer name already exists (excluding the current retailer)
+            boolean retailerNameExists = employeeInfoRepository.existsByEmployeeNameAndIdNot(
+                    updatedEmployeeInfo.getEmployeeName(), id);
+    
+            if (retailerNameExists) {
+           
+                throw new RuntimeException("Employee name '" + updatedEmployeeInfo.getEmployeeName() 
+                    + "' already exists. Update failed.");
+            }
+    
+            // Update retailer info
+            existingRetailer.setEmployeeName(updatedEmployeeInfo.getEmployeeName());
+            existingRetailer.setFatherName(updatedEmployeeInfo.getFatherName());
+            existingRetailer.setAddress(updatedEmployeeInfo.getAddress());
+            existingRetailer.setPhoneNumber(updatedEmployeeInfo.getPhoneNumber());
+              
+            return employeeInfoRepository.save(existingRetailer);
+        } else {
+            throw new RuntimeException("Employee not found with ID: " + id);
         }
     }
     

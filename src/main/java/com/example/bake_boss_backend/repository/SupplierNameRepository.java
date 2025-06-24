@@ -12,4 +12,6 @@ public interface SupplierNameRepository extends JpaRepository<SupplierName, Long
 
     List<SupplierName> getSupplierNameByUsername(String username);
 
+    void deleteBySupplierName(String supplierName);
+
 }

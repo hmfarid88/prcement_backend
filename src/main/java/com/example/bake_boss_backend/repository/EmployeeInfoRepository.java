@@ -13,4 +13,8 @@ public interface EmployeeInfoRepository extends JpaRepository<EmployeeInfo, Long
 
     List<EmployeeInfo> findAllByOrderByEmployeeNameAsc();
 
+    EmployeeInfo findByEmployeeName(String employeeName);
+
+    boolean existsByEmployeeNameAndIdNot(String employeeName, Long id);
+
 }

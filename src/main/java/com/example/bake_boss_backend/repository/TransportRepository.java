@@ -12,4 +12,6 @@ public interface TransportRepository extends JpaRepository<Transport, Long>{
 
     List<Transport> getTransportByUsername(String username);
 
+    void deleteByTransport(String transport);
+
 }
