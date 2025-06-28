@@ -138,4 +138,71 @@ public class ProductStockService {
             throw new RuntimeException("Product not found with ID: " + productId);
         }
     }
+   
+    @Transactional
+    public ProductStock updateProductEntry(Long productId, ProductStock updatedProductStock) {
+    Optional<ProductStock> existingProductOpt = productStockRepository.findById(productId);
+
+    if (existingProductOpt.isPresent()) {
+        ProductStock existingProduct = existingProductOpt.get();
+        Double oldQty = existingProduct.getProductQty();
+        Double newQty = updatedProductStock.getProductQty();
+        Double qtyDifference = newQty - oldQty;
+
+        String oldProductName = existingProduct.getProductName();
+        String newProductName = updatedProductStock.getProductName();
+        Double oldPprice = existingProduct.getPurchasePrice();
+        Double newPprice = updatedProductStock.getPurchasePrice();
+        
+
+        // Handle name change before updating the product name
+        if (!oldProductName.equals(newProductName)) {
+            productStockRepository.reduceRemainingQty(oldProductName, productId, oldQty);
+            productStockRepository.increaseRemainingQty(newProductName, productId, newQty);
+            existingProduct.setProductName(newProductName);
+        }
+
+        // Handle price update and cost price recalculation
+        if (Double.compare(oldPprice, newPprice) != 0) {
+                Double newTotalQty = existingProduct.getRemainingQty() + updatedProductStock.getProductQty();
+                Double totalValue = (existingProduct.getRemainingQty() * existingProduct.getCostPrice()) +
+                        (updatedProductStock.getProductQty() * updatedProductStock.getPurchasePrice());
+                Double newCostPrice = totalValue / newTotalQty;
+                existingProduct.setCostPrice(newCostPrice);
+
+        }
+
+        // Handle qty difference
+        if (qtyDifference > 0) {
+            productStockRepository.increaseRemainingQty(oldProductName, productId, qtyDifference);
+        } else if (qtyDifference < 0) {
+            productStockRepository.reduceRemainingQty(oldProductName, productId, Math.abs(qtyDifference));
+        }
+
+        // Now update remaining fields
+        existingProduct.setDate(updatedProductStock.getDate());
+        existingProduct.setSupplier(updatedProductStock.getSupplier());
+        existingProduct.setProductQty(newQty);
+        existingProduct.setPurchasePrice(newPprice);
+        existingProduct.setRemainingQty(existingProduct.getRemainingQty()+qtyDifference);
+         
+        return productStockRepository.save(existingProduct);
+    } else {
+        throw new RuntimeException("Product not found with ID: " + productId);
+    }
+}
+@Transactional
+public ProductStock deleteProductEntry(Long productId){
+    Optional<ProductStock> existingProductOpt = productStockRepository.findById(productId);
+    if (existingProductOpt.isPresent()) {
+        ProductStock existingProduct = existingProductOpt.get();
+        String oldProductName=existingProduct.getProductName();
+        Double qtyDifference=existingProduct.getProductQty();
+        productStockRepository.reduceRemainingQty(oldProductName, productId, qtyDifference);
+        productStockRepository.deleteById(productId);
+        return existingProduct;
+    }
+    throw new RuntimeException("Product with ID " + productId + " not found.");
+}
+
 }

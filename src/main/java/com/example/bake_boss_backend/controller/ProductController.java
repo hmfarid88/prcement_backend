@@ -28,15 +28,26 @@ import com.example.bake_boss_backend.entity.ProductStock;
 import com.example.bake_boss_backend.entity.RetailerInfo;
 import com.example.bake_boss_backend.entity.SupplierName;
 import com.example.bake_boss_backend.entity.Transport;
+import com.example.bake_boss_backend.entity.UserInfo;
 import com.example.bake_boss_backend.repository.EmployeeInfoRepository;
+import com.example.bake_boss_backend.repository.EmployeePaymentRepository;
 import com.example.bake_boss_backend.repository.EmployeeTargetRepository;
+import com.example.bake_boss_backend.repository.ExpenseRepository;
+import com.example.bake_boss_backend.repository.OfficePaymentRepository;
+import com.example.bake_boss_backend.repository.OfficeReceiveRepository;
 import com.example.bake_boss_backend.repository.OrderInfoRepository;
 import com.example.bake_boss_backend.repository.PaymentNameRepository;
 import com.example.bake_boss_backend.repository.ProductNameRepository;
 import com.example.bake_boss_backend.repository.ProductStockrepository;
+import com.example.bake_boss_backend.repository.RetailerCommissionRepository;
 import com.example.bake_boss_backend.repository.RetailerInfoRepository;
+import com.example.bake_boss_backend.repository.RetailerPaymentRepository;
+import com.example.bake_boss_backend.repository.SupplierCommissionRepository;
 import com.example.bake_boss_backend.repository.SupplierNameRepository;
+import com.example.bake_boss_backend.repository.SupplierPaymentRepository;
+import com.example.bake_boss_backend.repository.TransportPaymentRepository;
 import com.example.bake_boss_backend.repository.TransportRepository;
+import com.example.bake_boss_backend.repository.UserInfoRepository;
 import com.example.bake_boss_backend.service.ProductStockService;
 import com.example.bake_boss_backend.service.RetailerBalanceService;
 
@@ -81,7 +92,37 @@ public class ProductController {
     private EmployeeTargetRepository employeeTargetRepository;
 
     @Autowired
+    private EmployeePaymentRepository employeePaymentRepository;
+
+    @Autowired
+    private ExpenseRepository expenseRepository;
+
+    @Autowired
+    private OfficePaymentRepository officePaymentRepository;
+
+    @Autowired
+    private OfficeReceiveRepository officeReceiveRepository;
+
+    @Autowired
+    private RetailerPaymentRepository retailerPaymentRepository;
+
+    @Autowired
+    private RetailerCommissionRepository retailerCommissionRepository;
+
+    @Autowired
+    private SupplierCommissionRepository supplierCommissionRepository;
+
+    @Autowired
+    private SupplierPaymentRepository supplierPaymentRepository;
+
+    @Autowired
     private TransportRepository transportRepository;
+    
+    @Autowired
+    private TransportPaymentRepository transportPaymentRepository;
+
+    @Autowired
+    private UserInfoRepository userInfoRepository;
 
     @PostMapping("/closingSetup")
     public ClosingSetup saveOrUpdateClosingSetup(@RequestBody Map<String, String> request) {
@@ -165,16 +206,29 @@ public class ProductController {
             return ResponseEntity.status(400).body(errorResponse);
         }
     }
+@DeleteMapping("/deleteEmployeeById/{id}")
+public ResponseEntity<String> deleteEmployeeById(@PathVariable Long id) {
+    Optional<EmployeeInfo> employeeOpt = employeeInfoRepository.findById(id);
 
-    @DeleteMapping("/deleteEmployeeById/{id}")
-    public ResponseEntity<String> deleteEmployeeById(@PathVariable Long id) {
-        if (employeeInfoRepository.existsById(id)) {
-            employeeInfoRepository.deleteById(id);
-            return ResponseEntity.ok("Employee deleted successfully.");
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Employee not found.");
+    if (employeeOpt.isPresent()) {
+        EmployeeInfo employee = employeeOpt.get();
+        String employeeName = employee.getEmployeeName(); // same as username
+
+        // Delete the employee record
+        employeeInfoRepository.deleteById(id);
+
+        // Find and delete the corresponding UserInfo if role is "role_sales"
+        UserInfo userInfo = userInfoRepository.findByUsername(employeeName);
+        if (userInfo != null && "ROLE_SALES".equalsIgnoreCase(userInfo.getRoles())) {
+            userInfoRepository.delete(userInfo);
         }
+
+        return ResponseEntity.ok("Employee and related user deleted successfully.");
+    } else {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Employee not found.");
     }
+}
+
 
     @Transactional
     @DeleteMapping("/deletePaymentName")
@@ -219,6 +273,124 @@ public class ProductController {
         }
     }
 
+    @PutMapping("/updateEntryInfo/{productId}")
+    public ResponseEntity<?> updateEntryInfo(@PathVariable Long productId, @RequestBody ProductStock productstock) {
+        try {
+            ProductStock updatedProduct = productStockService.updateProductEntry(productId, productstock);
+            return ResponseEntity.ok(updatedProduct);
+        } catch (RuntimeException e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(400).body(errorResponse);
+        }
+    }
+
+    @DeleteMapping("/deleteEntryInfo/{productId}")
+    public ResponseEntity<?> deleteEntryInfo(@PathVariable Long productId) {
+    try {
+        ProductStock deletedProduct = productStockService.deleteProductEntry(productId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Product deleted successfully");
+        response.put("deletedProduct", deletedProduct);
+        return ResponseEntity.ok(response);
+    } catch (RuntimeException e) {
+        Map<String, String> errorResponse = new HashMap<>();
+        errorResponse.put("message", e.getMessage());
+        return ResponseEntity.status(400).body(errorResponse);
+    }
+}
+
+
+    @DeleteMapping("/deleteEmpayById/{id}")
+    public ResponseEntity<String> deleteEmployeePayById(@PathVariable Long id) {
+        if (employeePaymentRepository.existsById(id)) {
+            employeePaymentRepository.deleteById(id);
+            return ResponseEntity.ok("Payment deleted successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Payment not found.");
+        }
+    }
+
+    @DeleteMapping("/deleteExpenseById/{id}")
+    public ResponseEntity<String> deleteExpenseById(@PathVariable Long id) {
+        if (expenseRepository.existsById(id)) {
+            expenseRepository.deleteById(id);
+            return ResponseEntity.ok("Payment deleted successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Payment not found.");
+        }
+    }
+
+    @DeleteMapping("/deleteOfficePayById/{id}")
+    public ResponseEntity<String> deleteOfficePayById(@PathVariable Long id) {
+        if (officePaymentRepository.existsById(id)) {
+            officePaymentRepository.deleteById(id);
+            return ResponseEntity.ok("Payment deleted successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Payment not found.");
+        }
+    }
+
+    @DeleteMapping("/deleteReceiveById/{id}")
+    public ResponseEntity<String> deleteReceiveById(@PathVariable Long id) {
+        if (officeReceiveRepository.existsById(id)) {
+            officeReceiveRepository.deleteById(id);
+            return ResponseEntity.ok("Payment deleted successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Payment not found.");
+        }
+    }
+
+    @DeleteMapping("/deleteRetailerPaymentById/{id}")
+    public ResponseEntity<String> deletePaymentById(@PathVariable Long id) {
+        if (retailerPaymentRepository.existsById(id)) {
+            retailerPaymentRepository.deleteById(id);
+            return ResponseEntity.ok("Payment deleted successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Payment not found.");
+        }
+    }
+
+    @DeleteMapping("/deleteRetailerComById/{id}")
+    public ResponseEntity<String> deleteComById(@PathVariable Long id) {
+        if (retailerCommissionRepository.existsById(id)) {
+            retailerCommissionRepository.deleteById(id);
+            return ResponseEntity.ok("Payment deleted successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Payment not found.");
+        }
+    }
+
+    @DeleteMapping("/deleteSupplierComById/{id}")
+    public ResponseEntity<String> deleteSuppComById(@PathVariable Long id) {
+        if (supplierCommissionRepository.existsById(id)) {
+            supplierCommissionRepository.deleteById(id);
+            return ResponseEntity.ok("Payment deleted successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Payment not found.");
+        }
+    }
+
+    @DeleteMapping("/deleteSupplierPayById/{id}")
+    public ResponseEntity<String> deleteSuppPayById(@PathVariable Long id) {
+        if (supplierPaymentRepository.existsById(id)) {
+            supplierPaymentRepository.deleteById(id);
+            return ResponseEntity.ok("Payment deleted successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Payment not found.");
+        }
+    }
+
+    @DeleteMapping("/deleteTransportPayById/{id}")
+    public ResponseEntity<String> deleteTransportPayById(@PathVariable Long id) {
+        if (transportPaymentRepository.existsById(id)) {
+            transportPaymentRepository.deleteById(id);
+            return ResponseEntity.ok("Payment deleted successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Payment not found.");
+        }
+    }
+
     @PostMapping("/addEmployeeInfo")
     public ResponseEntity<?> addEmployee(@RequestBody EmployeeInfo employeeInfo) {
         if (employeeInfoRepository.existsByEmployeeName(employeeInfo.getEmployeeName())) {
@@ -256,8 +428,7 @@ public class ProductController {
     public List<ProductStock> saveProducts(@RequestBody List<ProductStock> allItems) {
         for (ProductStock newItem : allItems) {
             Optional<ProductStock> latestProductStockOpt = productStockrepository
-                    .findTopByProductNameAndUsernameOrderByProductIdDesc(newItem.getProductName(),
-                            newItem.getUsername());
+                    .findTopByProductNameAndUsernameOrderByProductIdDesc(newItem.getProductName(), newItem.getUsername());
 
             if (latestProductStockOpt.isPresent()) {
                 ProductStock latestProductStock = latestProductStockOpt.get();
@@ -429,6 +600,16 @@ public class ProductController {
 
     @GetMapping("/getSaleInfo/{productId}")
     public ResponseEntity<?> getProductStockById(@PathVariable Long productId) {
+        try {
+            ProductStock productStock = productStockService.getProductStockById(productId);
+            return ResponseEntity.ok(productStock);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/getProductEntry/{productId}")
+    public ResponseEntity<?> getProductEntryById(@PathVariable Long productId) {
         try {
             ProductStock productStock = productStockService.getProductStockById(productId);
             return ResponseEntity.ok(productStock);
