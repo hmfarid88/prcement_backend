@@ -28,4 +28,6 @@ public interface EmployeePaymentRepository extends JpaRepository<EmployeePayment
             "AND e.year = :year " +
             "AND e.month = :month")
     Double findSumOfAmountByEmployeeNameYearMonthAndUsername(@Param("username") String username, @Param("employeeName") String employeeName, @Param("year") int year, @Param("month") int month);
+
+    List<EmployeePayment> findByEmployeeName(String oldEmployeeName);
 }
