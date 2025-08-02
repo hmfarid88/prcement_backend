@@ -76,8 +76,7 @@ public interface ProductStockrepository extends JpaRepository<ProductStock, Long
    @Query("SELECT ps.remainingQty FROM ProductStock ps " +
          "WHERE ps.username = :username AND ps.productName = :productName " +
          "ORDER BY ps.productId DESC LIMIT 1")
-   Double findLastRemainingQtyByUsernameAndProductName(@Param("username") String username,
-         @Param("productName") String productName);
+   Double findLastRemainingQtyByUsernameAndProductName(@Param("username") String username, @Param("productName") String productName);
 
    @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty*ps.dpRate, 0.0, 0.0) FROM ProductStock ps WHERE ps.username = :username AND ps.status='sold' AND ps.customer = :retailerName AND ps.date BETWEEN :startDate AND :endDate")
    List<RetailerDetailsDTO> findProductDetailsByUsernameAndRetailerName(String username, String retailerName,

@@ -117,7 +117,7 @@ public class ProductController {
 
     @Autowired
     private TransportRepository transportRepository;
-    
+
     @Autowired
     private TransportPaymentRepository transportPaymentRepository;
 
@@ -206,29 +206,41 @@ public class ProductController {
             return ResponseEntity.status(400).body(errorResponse);
         }
     }
-@DeleteMapping("/deleteEmployeeById/{id}")
-public ResponseEntity<String> deleteEmployeeById(@PathVariable Long id) {
-    Optional<EmployeeInfo> employeeOpt = employeeInfoRepository.findById(id);
 
-    if (employeeOpt.isPresent()) {
-        EmployeeInfo employee = employeeOpt.get();
-        String employeeName = employee.getEmployeeName(); // same as username
+    @DeleteMapping("/deleteEmployeeById/{id}")
+    public ResponseEntity<String> deleteEmployeeById(@PathVariable Long id) {
+        Optional<EmployeeInfo> employeeOpt = employeeInfoRepository.findById(id);
 
-        // Delete the employee record
-        employeeInfoRepository.deleteById(id);
+        if (employeeOpt.isPresent()) {
+            EmployeeInfo employee = employeeOpt.get();
+            String employeeName = employee.getEmployeeName(); // same as username
 
-        // Find and delete the corresponding UserInfo if role is "role_sales"
-        UserInfo userInfo = userInfoRepository.findByUsername(employeeName);
-        if (userInfo != null && "ROLE_SALES".equalsIgnoreCase(userInfo.getRoles())) {
-            userInfoRepository.delete(userInfo);
+            // Delete the employee record
+            employeeInfoRepository.deleteById(id);
+
+            // Find and delete the corresponding UserInfo if role is "role_sales"
+            UserInfo userInfo = userInfoRepository.findByUsername(employeeName);
+            if (userInfo != null && "ROLE_SALES".equalsIgnoreCase(userInfo.getRoles())) {
+                userInfoRepository.delete(userInfo);
+            }
+
+            return ResponseEntity.ok("Employee and related user deleted successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Employee not found.");
         }
-
-        return ResponseEntity.ok("Employee and related user deleted successfully.");
-    } else {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Employee not found.");
     }
-}
 
+    @DeleteMapping("/deleteRetailerById/{id}")
+    public ResponseEntity<String> deleteRetailerById(@PathVariable Long id) {
+        Optional<RetailerInfo> retailerOpt = retailerInfoRepository.findById(id);
+
+        if (retailerOpt.isPresent()) {
+            retailerInfoRepository.deleteById(id);
+            return ResponseEntity.ok("Retailer deleted successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Retailer not found.");
+        }
+    }
 
     @Transactional
     @DeleteMapping("/deletePaymentName")
@@ -287,19 +299,18 @@ public ResponseEntity<String> deleteEmployeeById(@PathVariable Long id) {
 
     @DeleteMapping("/deleteEntryInfo/{productId}")
     public ResponseEntity<?> deleteEntryInfo(@PathVariable Long productId) {
-    try {
-        ProductStock deletedProduct = productStockService.deleteProductEntry(productId);
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Product deleted successfully");
-        response.put("deletedProduct", deletedProduct);
-        return ResponseEntity.ok(response);
-    } catch (RuntimeException e) {
-        Map<String, String> errorResponse = new HashMap<>();
-        errorResponse.put("message", e.getMessage());
-        return ResponseEntity.status(400).body(errorResponse);
+        try {
+            ProductStock deletedProduct = productStockService.deleteProductEntry(productId);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Product deleted successfully");
+            response.put("deletedProduct", deletedProduct);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(400).body(errorResponse);
+        }
     }
-}
-
 
     @DeleteMapping("/deleteEmpayById/{id}")
     public ResponseEntity<String> deleteEmployeePayById(@PathVariable Long id) {
@@ -428,7 +439,8 @@ public ResponseEntity<String> deleteEmployeeById(@PathVariable Long id) {
     public List<ProductStock> saveProducts(@RequestBody List<ProductStock> allItems) {
         for (ProductStock newItem : allItems) {
             Optional<ProductStock> latestProductStockOpt = productStockrepository
-                    .findTopByProductNameAndUsernameOrderByProductIdDesc(newItem.getProductName(), newItem.getUsername());
+                    .findTopByProductNameAndUsernameOrderByProductIdDesc(newItem.getProductName(),
+                            newItem.getUsername());
 
             if (latestProductStockOpt.isPresent()) {
                 ProductStock latestProductStock = latestProductStockOpt.get();
