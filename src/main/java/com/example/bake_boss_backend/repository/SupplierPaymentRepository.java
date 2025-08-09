@@ -26,6 +26,6 @@ public interface SupplierPaymentRepository extends JpaRepository<SupplierPayment
       "FROM SupplierPayment sp WHERE sp.username = :username GROUP BY sp.supplierName")
   List<Object[]> findTotalPaymentGroupedBySupplierAndUsername(String username);
 
-  @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(rp.date, 'No', 0.0, 0.0, SUM(rp.amount), 0.0) FROM SupplierPayment rp WHERE rp.username = :username AND  rp.supplierName = :supplierName GROUP BY rp.date")
+  @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(rp.date, 'No', 0.0, 0.0, rp.amount, 0.0) FROM SupplierPayment rp WHERE rp.username = :username AND  rp.supplierName = :supplierName")
   List<SupplierDetailsDTO> findPaymentDetailsByUsernameAndSupplierName(String username, String supplierName);
 }

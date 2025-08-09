@@ -22,6 +22,7 @@ public class RetailerInfo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private String category;
     private String retailerName;
     private String retailerCode;
     private String thanaName;

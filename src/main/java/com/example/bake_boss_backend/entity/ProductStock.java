@@ -33,6 +33,7 @@ public class ProductStock {
     private Long productId;
     private Long orderId;
     private LocalDate date;
+    private String warehouse;
     private String supplier;
     private String productName;
     private Double purchasePrice;

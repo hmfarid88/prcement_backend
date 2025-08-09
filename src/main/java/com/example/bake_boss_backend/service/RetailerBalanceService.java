@@ -242,6 +242,7 @@ public class RetailerBalanceService {
             }
 
             // Update retailer info
+            existingRetailer.setCategory(updatedRetailerInfo.getCategory());
             existingRetailer.setRetailerName(updatedRetailerInfo.getRetailerName());
             existingRetailer.setRetailerCode(updatedRetailerInfo.getRetailerCode());
             existingRetailer.setThanaName(updatedRetailerInfo.getThanaName());

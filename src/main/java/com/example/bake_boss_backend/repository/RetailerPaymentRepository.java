@@ -50,7 +50,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
        List<RetailerDetailsDTO> findPaymentDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName, LocalDate startDate, LocalDate endDate);
 
        @Query("SELECT new com.example.bake_boss_backend.dto.RetailerBalanceDTO(" +
-       "r.retailerName, r.retailerCode, r.salesPerson, " +
+       "r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson, " +
        "COALESCE(SUM(ps.productQty), 0) as totalProductQty, " +
        "COALESCE(SUM(ps.productQty * ps.dpRate), 0) as totalProductValue, " +
        "(SELECT COALESCE(SUM(rp.amount), 0) FROM RetailerPayment rp " +
@@ -61,14 +61,14 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
        "LEFT JOIN ProductStock ps ON ps.customer = r.retailerName " +
        "AND ps.date BETWEEN :startDate AND :endDate " +
        "WHERE r.status = 'Active' " +
-       "GROUP BY r.retailerName, r.retailerCode, r.salesPerson ORDER BY r.retailerName")
+       "GROUP BY r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson ORDER BY r.retailerName")
        List<RetailerBalanceDTO> findRetailerBalanceBetweenDates(
        @Param("startDate") LocalDate startDate,
        @Param("endDate") LocalDate endDate);
 
 // sales
        @Query("SELECT new com.example.bake_boss_backend.dto.RetailerBalanceDTO(" +
-       "r.retailerName, r.retailerCode, r.salesPerson, " +
+       "r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson, " +
        "COALESCE(SUM(ps.productQty), 0) as totalProductQty, " +
        "COALESCE(SUM(ps.productQty * ps.dpRate), 0) as totalProductValue, " +
        "(SELECT COALESCE(SUM(rp.amount), 0) FROM RetailerPayment rp " +
@@ -79,7 +79,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
        "LEFT JOIN ProductStock ps ON ps.customer = r.retailerName " +
        "AND ps.date BETWEEN :startDate AND :endDate " +
        "WHERE r.status = 'Active' AND r.salesPerson = :salesPerson " +
-       "GROUP BY r.retailerName, r.retailerCode, r.salesPerson ORDER BY r.retailerName")
+       "GROUP BY r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson ORDER BY r.retailerName")
        List<RetailerBalanceDTO> findSalesRetailerBalanceBetweenDates(
        @Param("salesPerson") String salesPerson,
        @Param("startDate") LocalDate startDate,

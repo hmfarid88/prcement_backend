@@ -182,6 +182,7 @@ public class ProductStockService {
         // Now update remaining fields
         existingProduct.setDate(updatedProductStock.getDate());
         existingProduct.setSupplier(updatedProductStock.getSupplier());
+        existingProduct.setWarehouse(updatedProductStock.getWarehouse());
         existingProduct.setProductQty(newQty);
         existingProduct.setPurchasePrice(newPprice);
         existingProduct.setRemainingQty(existingProduct.getRemainingQty()+qtyDifference);

@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RetailerBalanceDTO {
+    private String category;
+    private String areaName;
     private String retailerName;
     private String retailerCode;
     private String salesPerson;

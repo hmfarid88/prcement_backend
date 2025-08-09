@@ -86,7 +86,7 @@ public interface ProductStockrepository extends JpaRepository<ProductStock, Long
    List<RetailerDetailsDTO> findProductDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName,
          LocalDate startDate, LocalDate endDate);
 
-   @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(ps.date, ps.productName, SUM(ps.productQty), SUM(ps.productQty*ps.purchasePrice), 0.0, 0.0) FROM ProductStock ps WHERE ps.username = :username AND ps.status='stored' AND ps.supplier = :supplierName  GROUP BY ps.date, ps.productName")
+   @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(ps.date, ps.productName, ps.productQty, ps.productQty*ps.purchasePrice, 0.0, 0.0) FROM ProductStock ps WHERE ps.username = :username AND ps.status='stored' AND ps.supplier = :supplierName")
    List<SupplierDetailsDTO> findProductDetailsByUsernameAndSupplierName(String username, String supplierName);
 
    @Query("SELECT new com.example.bake_boss_backend.dto.TransportDetailsDTO(ps.date, ps.truckNo, SUM(ps.productQty), SUM(ps.rent), 0.0) FROM ProductStock ps WHERE ps.username = :username AND ps.status='sold' AND ps.transport = :transport  GROUP BY ps.date, ps.truckNo")
