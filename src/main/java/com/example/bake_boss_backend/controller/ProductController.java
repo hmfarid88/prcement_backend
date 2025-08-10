@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.bake_boss_backend.entity.ClosingSetup;
 import com.example.bake_boss_backend.entity.EmployeeInfo;
 import com.example.bake_boss_backend.entity.EmployeeTarget;
+import com.example.bake_boss_backend.entity.ExpenseName;
 import com.example.bake_boss_backend.entity.OrderInfo;
 import com.example.bake_boss_backend.entity.PaymentName;
 import com.example.bake_boss_backend.entity.ProductName;
@@ -32,6 +33,7 @@ import com.example.bake_boss_backend.entity.UserInfo;
 import com.example.bake_boss_backend.repository.EmployeeInfoRepository;
 import com.example.bake_boss_backend.repository.EmployeePaymentRepository;
 import com.example.bake_boss_backend.repository.EmployeeTargetRepository;
+import com.example.bake_boss_backend.repository.ExpenseNameRepository;
 import com.example.bake_boss_backend.repository.ExpenseRepository;
 import com.example.bake_boss_backend.repository.OfficePaymentRepository;
 import com.example.bake_boss_backend.repository.OfficeReceiveRepository;
@@ -124,6 +126,9 @@ public class ProductController {
     @Autowired
     private UserInfoRepository userInfoRepository;
 
+    @Autowired
+    private ExpenseNameRepository expenseNameRepository;
+
     @PostMapping("/closingSetup")
     public ClosingSetup saveOrUpdateClosingSetup(@RequestBody Map<String, String> request) {
         LocalDate startDate = LocalDate.parse(request.get("startDate"));
@@ -140,6 +145,16 @@ public class ProductController {
         }
         ProductName savedProduct = productNameRepository.save(productName);
         return ResponseEntity.status(HttpStatus.CREATED).body(savedProduct);
+    }
+
+    @PostMapping("/addExpenseName")
+    public ResponseEntity<?> addExpense(@RequestBody ExpenseName expenseName) {
+        if (expenseNameRepository.existsByUsernameAndExpenseName(expenseName.getUsername(), expenseName.getExpenseName())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Product " + expenseName.getExpenseName() + " is already exists!");
+        }
+        ExpenseName savedExpenseName = expenseNameRepository.save(expenseName);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedExpenseName);
     }
 
     @PostMapping("/addTransport")
@@ -262,7 +277,13 @@ public class ProductController {
     public ResponseEntity<String> deleteProductName(@RequestParam String productName) {
         productNameRepository.deleteByProductName(productName);
         return ResponseEntity.ok("Name deleted successfully.");
+    }
 
+    @Transactional
+    @DeleteMapping("/deleteExpenseName")
+    public ResponseEntity<String> deleteExpenseName(@RequestParam String expenseName) {
+        expenseNameRepository.deleteByExpenseName(expenseName);
+        return ResponseEntity.ok("Name deleted successfully.");
     }
 
     @Transactional
@@ -538,6 +559,11 @@ public class ProductController {
     @GetMapping("/getProductName")
     public List<ProductName> getProductNameByUsername() {
         return productNameRepository.findAll();
+    }
+
+    @GetMapping("/getExpenseName")
+    public List<ExpenseName> getProductNameByUsername(@RequestParam String username) {
+        return expenseNameRepository.findByUsername(username);
     }
 
     @GetMapping("/getProductStock")
