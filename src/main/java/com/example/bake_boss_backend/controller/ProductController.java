@@ -305,7 +305,15 @@ public class ProductController {
             return ResponseEntity.status(400).body(errorResponse);
         }
     }
-
+   @DeleteMapping("/deleteProductSale/{productId}")
+    public ResponseEntity<String> deleteProductSale(@PathVariable Long productId) {
+        try {
+            productStockService.deleteProductSale(productId);
+            return ResponseEntity.ok("Product sale deleted successfully with ID: " + productId);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
+    }
     @PutMapping("/updateEntryInfo/{productId}")
     public ResponseEntity<?> updateEntryInfo(@PathVariable Long productId, @RequestBody ProductStock productstock) {
         try {

@@ -138,7 +138,26 @@ public class ProductStockService {
             throw new RuntimeException("Product not found with ID: " + productId);
         }
     }
-   
+   @Transactional
+    public void deleteProductSale(Long productId) {
+    Optional<ProductStock> existingProductOpt = productStockRepository.findById(productId);
+
+    if (existingProductOpt.isPresent()) {
+        ProductStock existingProduct = existingProductOpt.get();
+
+        String productName = existingProduct.getProductName();
+        Double soldQty = existingProduct.getProductQty();
+
+        // Restore the stock (increase remaining quantity)
+        productStockRepository.increaseRemainingQty(productName, productId, soldQty);
+
+        // Now delete the sale record
+        productStockRepository.deleteById(productId);
+
+    } else {
+        throw new RuntimeException("Product not found with ID: " + productId);
+    }
+}
     @Transactional
     public ProductStock updateProductEntry(Long productId, ProductStock updatedProductStock) {
     Optional<ProductStock> existingProductOpt = productStockRepository.findById(productId);
