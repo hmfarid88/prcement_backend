@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.example.bake_boss_backend.dto.PaymentDto;
 import com.example.bake_boss_backend.dto.TransportDetailsDTO;
 import com.example.bake_boss_backend.entity.TransportPayment;
 
@@ -23,4 +24,8 @@ public interface TransportPaymentRepository extends JpaRepository<TransportPayme
 
   @Query("SELECT o FROM TransportPayment o WHERE o.username = :username AND  o.date BETWEEN :startDate AND :endDate ORDER BY o.date")
   List<TransportPayment> findPaymentsByDate(String username, LocalDate startDate, LocalDate endDate);
+
+   @Query("SELECT new com.example.bake_boss_backend.dto.PaymentDto(s.date, s.transport, s.note, s.amount) "
+      + "FROM TransportPayment s WHERE s.username = :username AND s.date = :date")
+  List<PaymentDto> findTransportPaymentsForToday(@Param("username") String username, @Param("date") LocalDate date);
 }

@@ -16,5 +16,6 @@ public class RetailerDetailsDTO {
     private Double productValue;
     private Double payment;
     private Double commission;
+    private Double balance;
 
 }

@@ -92,58 +92,51 @@ public class RetailerBalanceService {
         return retailerPaymentRepository.findSalesRetailerBalanceBetweenDates(salesPerson, startDate, endDate);
     }
 
-    public List<RetailerDetailsDTO> getDatewiseDetailsByRetailerAndUsername(String retailerName, String username) {
-        ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
 
-        if (lastClosingSetup != null) {
-            LocalDate startDate = lastClosingSetup.getStartDate();
-            LocalDate endDate = lastClosingSetup.getEndDate();
+public List<RetailerDetailsDTO> retailerDetailsForCurrentMonth(String retailerName, String username) {
+    LocalDate now = LocalDate.now();
+    int year = now.getYear();
+    int month = now.getMonthValue();
+    ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
 
-            List<RetailerDetailsDTO> productValue = Optional.ofNullable(
-                    productStockrepository.findProductDetailsByUsernameAndRetailerName(username, retailerName,
-                            startDate, endDate))
-                    .orElse(Collections.emptyList());
+    if (lastClosingSetup != null) {
 
-            List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
-                    retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerName(username, retailerName,
-                            startDate, endDate))
-                    .orElse(Collections.emptyList());
+        // 1️⃣ Calculate opening balance (all transactions before this month)
+        List<RetailerDetailsDTO> prevProduct = Optional.ofNullable(
+                productStockrepository.findProductDetailsByUsernameAndRetailerNameBeforemonth(username, retailerName, year, month))
+                .orElse(Collections.emptyList());
 
-            List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
-                    retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerName(username, retailerName,
-                            startDate, endDate))
-                    .orElse(Collections.emptyList());
+        List<RetailerDetailsDTO> prevPayment = Optional.ofNullable(
+                retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerNameBeforemonth(username, retailerName, year, month))
+                .orElse(Collections.emptyList());
 
-            List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
-            combinedDetails.addAll(productValue);
-            combinedDetails.addAll(paymentValue);
-            combinedDetails.addAll(commissionValue);
+        List<RetailerDetailsDTO> prevCommission = Optional.ofNullable(
+                retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerNameBeforemonth(username, retailerName, year, month))
+                .orElse(Collections.emptyList());
 
-            combinedDetails.sort(
-                    Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
+        double openingBalance = 0.0;
 
-            return combinedDetails;
+        for (RetailerDetailsDTO dto : prevProduct) {
+            openingBalance += dto.getProductValue() != null ? dto.getProductValue() : 0.0;
+        }
+        for (RetailerDetailsDTO dto : prevPayment) {
+            openingBalance -= dto.getPayment() != null ? dto.getPayment() : 0.0;
+        }
+        for (RetailerDetailsDTO dto : prevCommission) {
+            openingBalance -= dto.getCommission() != null ? dto.getCommission() : 0.0;
         }
 
-        return Collections.emptyList();
-    }
-
-    public List<RetailerDetailsDTO> getDatewiseRetailerDetailsByRetailerAndUsername(
-            String retailerName, String username, LocalDate startDate, LocalDate endDate) {
-
+        // 2️⃣ Fetch current month data
         List<RetailerDetailsDTO> productValue = Optional.ofNullable(
-                productStockrepository.findProductDetailsByUsernameAndRetailerName(username, retailerName, startDate,
-                        endDate))
+                productStockrepository.findProductDetailsByUsernameAndRetailerNameCurrentmonth(username, retailerName, year, month))
                 .orElse(Collections.emptyList());
 
         List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
-                retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerName(username, retailerName, startDate,
-                        endDate))
+                retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerNameCurrentmonth(username, retailerName, year, month))
                 .orElse(Collections.emptyList());
 
         List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
-                retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerName(username, retailerName,
-                        startDate, endDate))
+                retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerNameCurrentmonth(username, retailerName, year, month))
                 .orElse(Collections.emptyList());
 
         List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
@@ -151,11 +144,305 @@ public class RetailerBalanceService {
         combinedDetails.addAll(paymentValue);
         combinedDetails.addAll(commissionValue);
 
+        // 3️⃣ Sort current month rows by date
         combinedDetails.sort(
                 Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
 
-        return combinedDetails;
+        // 4️⃣ Prepare final result with opening balance
+        List<RetailerDetailsDTO> finalResult = new ArrayList<>();
+
+        RetailerDetailsDTO openingRow = new RetailerDetailsDTO(
+                now.withDayOfMonth(1).minusDays(1), // last day of prev month
+                "Opening Balance", null, null, null, null, null, null, openingBalance
+        );
+        finalResult.add(openingRow);
+
+        // 5️⃣ Running balance for current month
+        double runningBalance = openingBalance;
+        for (RetailerDetailsDTO dto : combinedDetails) {
+            double value = 0.0;
+
+            if (dto.getProductValue() != null) {
+                value += dto.getProductValue();
+            }
+            if (dto.getPayment() != null) {
+                value -= dto.getPayment();
+            }
+            if (dto.getCommission() != null) {
+                value -= dto.getCommission();
+            }
+
+            runningBalance += value;
+            dto.setBalance(runningBalance);
+            finalResult.add(dto);
+        }
+
+        return finalResult;
     }
+
+    return Collections.emptyList();
+}
+
+public List<RetailerDetailsDTO> retailerDetailsDatetodate(String username, String retailerName, LocalDate startDate, LocalDate endDate) {
+   
+    ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
+
+    if (lastClosingSetup != null) {
+
+        // 1️⃣ Calculate opening balance (all transactions before this month)
+        List<RetailerDetailsDTO> prevProduct = Optional.ofNullable(
+                productStockrepository.findProductDetailsByUsernameAndRetailerNameBeforeDate(username, retailerName, startDate))
+                .orElse(Collections.emptyList());
+
+        List<RetailerDetailsDTO> prevPayment = Optional.ofNullable(
+                retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerNameBeforedate(username, retailerName, startDate))
+                .orElse(Collections.emptyList());
+
+        List<RetailerDetailsDTO> prevCommission = Optional.ofNullable(
+                retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerNameBeforeDate(username, retailerName, startDate))
+                .orElse(Collections.emptyList());
+
+        double openingBalance = 0.0;
+
+        for (RetailerDetailsDTO dto : prevProduct) {
+            openingBalance += dto.getProductValue() != null ? dto.getProductValue() : 0.0;
+        }
+        for (RetailerDetailsDTO dto : prevPayment) {
+            openingBalance -= dto.getPayment() != null ? dto.getPayment() : 0.0;
+        }
+        for (RetailerDetailsDTO dto : prevCommission) {
+            openingBalance -= dto.getCommission() != null ? dto.getCommission() : 0.0;
+        }
+
+        // 2️⃣ Fetch current month data
+        List<RetailerDetailsDTO> productValue = Optional.ofNullable(
+                productStockrepository.findProductDetailsByUsernameAndRetailerNameDatetodate(username, retailerName, startDate, endDate))
+                .orElse(Collections.emptyList());
+
+        List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
+                retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerNameDatetodate(username, retailerName, startDate, endDate))
+                .orElse(Collections.emptyList());
+
+        List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
+                retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerNameDatetoDate(username, retailerName, startDate, endDate))
+                .orElse(Collections.emptyList());
+
+        List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
+        combinedDetails.addAll(productValue);
+        combinedDetails.addAll(paymentValue);
+        combinedDetails.addAll(commissionValue);
+
+        // 3️⃣ Sort current month rows by date
+        combinedDetails.sort(
+                Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
+
+        // 4️⃣ Prepare final result with opening balance
+        List<RetailerDetailsDTO> finalResult = new ArrayList<>();
+
+        RetailerDetailsDTO openingRow = new RetailerDetailsDTO(
+                startDate.withDayOfMonth(1).minusDays(1), // last day of prev month
+                "Opening Balance", null, null, null, null, null, null, openingBalance
+        );
+        finalResult.add(openingRow);
+
+        // 5️⃣ Running balance for current month
+        double runningBalance = openingBalance;
+        for (RetailerDetailsDTO dto : combinedDetails) {
+            double value = 0.0;
+
+            if (dto.getProductValue() != null) {
+                value += dto.getProductValue();
+            }
+            if (dto.getPayment() != null) {
+                value -= dto.getPayment();
+            }
+            if (dto.getCommission() != null) {
+                value -= dto.getCommission();
+            }
+
+            runningBalance += value;
+            dto.setBalance(runningBalance);
+            finalResult.add(dto);
+        }
+
+        return finalResult;
+    }
+
+    return Collections.emptyList();
+}
+
+
+//     public List<RetailerDetailsDTO> getDatewiseDetailsByRetailerAndUsername(String retailerName, String username) {
+//         ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
+
+//         if (lastClosingSetup != null) {
+//             LocalDate startDate = lastClosingSetup.getStartDate();
+//             LocalDate endDate = lastClosingSetup.getEndDate();
+
+//             List<RetailerDetailsDTO> productValue = Optional.ofNullable(productStockrepository.findProductDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate))
+//                     .orElse(Collections.emptyList());
+
+//             List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate))
+//                     .orElse(Collections.emptyList());
+
+//             List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate))
+//                     .orElse(Collections.emptyList());
+
+//             List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
+//             combinedDetails.addAll(productValue);
+//             combinedDetails.addAll(paymentValue);
+//             combinedDetails.addAll(commissionValue);
+
+//             combinedDetails.sort(
+//                     Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.reverseOrder())));
+
+//             return combinedDetails;
+//         }
+
+//         return Collections.emptyList();
+//     }
+
+
+// public Page<RetailerDetailsDTO> getDatewiseDetailsByRetailerAndUsername(
+//         String retailerName, String username, int page, int size) {
+
+//     ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
+
+//     if (lastClosingSetup != null) {
+//         LocalDate startDate = lastClosingSetup.getStartDate();
+//         LocalDate endDate = lastClosingSetup.getEndDate();
+
+//         List<RetailerDetailsDTO> productValue = Optional.ofNullable(
+//                 productStockrepository.findProductDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate)
+//         ).orElse(Collections.emptyList());
+
+//         List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
+//                 retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate)
+//         ).orElse(Collections.emptyList());
+
+//         List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
+//                 retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate)
+//         ).orElse(Collections.emptyList());
+
+//         List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
+//         combinedDetails.addAll(productValue);
+//         combinedDetails.addAll(paymentValue);
+//         combinedDetails.addAll(commissionValue);
+
+//         // 1️⃣ Sort ASC first (for correct running balance calculation)
+//         combinedDetails.sort(
+//                 Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder()))
+//         );
+
+//         // 2️⃣ Running balance calculation
+//         double balance = 0;
+//         for (RetailerDetailsDTO dto : combinedDetails) {
+//             double productVal = dto.getProductValue() != null ? dto.getProductValue() : 0;
+//             double paymentVal = dto.getPayment() != null ? dto.getPayment() : 0;
+//             double commissionVal = dto.getCommission() != null ? dto.getCommission() : 0;
+
+//             balance += productVal;
+//             balance -= paymentVal;
+//             balance -= commissionVal;
+
+//             dto.setBalance(balance);
+//         }
+
+//         // 3️⃣ Sort DESC for display
+//         Collections.reverse(combinedDetails);
+
+//         // 4️⃣ Manual pagination
+//         int start = Math.min(page * size, combinedDetails.size());
+//         int end = Math.min(start + size, combinedDetails.size());
+//         List<RetailerDetailsDTO> paginatedList = combinedDetails.subList(start, end);
+
+//         return new PageImpl<>(paginatedList, PageRequest.of(page, size), combinedDetails.size());
+//     }
+
+//     return Page.empty();
+// }
+
+
+
+//     public List<RetailerDetailsDTO> getDatewiseRetailerDetailsByRetailerAndUsername(
+//             String retailerName, String username, LocalDate startDate, LocalDate endDate) {
+
+//         List<RetailerDetailsDTO> productValue = Optional.ofNullable(
+//                 productStockrepository.findProductDetailsByUsernameAndRetailerName(username, retailerName, startDate,
+//                         endDate))
+//                 .orElse(Collections.emptyList());
+
+//         List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
+//                 retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerName(username, retailerName, startDate,
+//                         endDate))
+//                 .orElse(Collections.emptyList());
+
+//         List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
+//                 retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerName(username, retailerName,
+//                         startDate, endDate))
+//                 .orElse(Collections.emptyList());
+
+//         List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
+//         combinedDetails.addAll(productValue);
+//         combinedDetails.addAll(paymentValue);
+//         combinedDetails.addAll(commissionValue);
+
+//         combinedDetails.sort(
+//                 Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
+
+//         return combinedDetails;
+//     }
+
+// public Page<RetailerDetailsDTO> getDatewiseRetailerDetailsByRetailerAndUsername(
+//         String retailerName, String username, LocalDate startDate, LocalDate endDate, int page, int size) {
+
+//     List<RetailerDetailsDTO> productValue = Optional.ofNullable(
+//             productStockrepository.findProductDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate)
+//     ).orElse(Collections.emptyList());
+
+//     List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
+//             retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate)
+//     ).orElse(Collections.emptyList());
+
+//     List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
+//             retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate)
+//     ).orElse(Collections.emptyList());
+
+//     List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
+//     combinedDetails.addAll(productValue);
+//     combinedDetails.addAll(paymentValue);
+//     combinedDetails.addAll(commissionValue);
+
+//     // 1️⃣ Sort ASC first (for correct running balance calculation)
+//     combinedDetails.sort(
+//             Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder()))
+//     );
+
+//     // 2️⃣ Running balance calculation
+//     double balance = 0;
+//     for (RetailerDetailsDTO dto : combinedDetails) {
+//         double productVal = dto.getProductValue() != null ? dto.getProductValue() : 0;
+//         double paymentVal = dto.getPayment() != null ? dto.getPayment() : 0;
+//         double commissionVal = dto.getCommission() != null ? dto.getCommission() : 0;
+
+//         balance += productVal;
+//         balance -= paymentVal;
+//         balance -= commissionVal;
+
+//         dto.setBalance(balance);
+//     }
+
+//     // 3️⃣ Reverse to DESC (latest first)
+//     Collections.reverse(combinedDetails);
+
+//     // 4️⃣ Manual pagination
+//     int start = Math.min(page * size, combinedDetails.size());
+//     int end = Math.min(start + size, combinedDetails.size());
+//     List<RetailerDetailsDTO> paginatedList = combinedDetails.subList(start, end);
+
+//     return new PageImpl<>(paginatedList, PageRequest.of(page, size), combinedDetails.size());
+// }
+
 
     public List<RetailerDetailsDTO> getDetailsByRetailerAndSalesPerson(
             String retailerName, String salesPerson) {

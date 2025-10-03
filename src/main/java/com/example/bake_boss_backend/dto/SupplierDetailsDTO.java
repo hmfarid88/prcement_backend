@@ -14,5 +14,6 @@ public class SupplierDetailsDTO {
     private Double productValue;
     private Double payment;
     private Double commission;
+    private String note;
    
 }

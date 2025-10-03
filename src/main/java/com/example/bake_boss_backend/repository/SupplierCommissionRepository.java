@@ -21,6 +21,6 @@ public interface SupplierCommissionRepository extends JpaRepository<SupplierComm
       "FROM SupplierCommission sp WHERE sp.username = :username GROUP BY sp.supplierName")
   List<Object[]> findTotalCommissionGroupedBySupplierAndUsername(String username);
 
-   @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(rp.date, 'No', 0.0, 0.0, 0.0, rp.amount) FROM SupplierCommission rp WHERE rp.username = :username AND  rp.supplierName = :supplierName")
+   @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(rp.date, 'No', 0.0, 0.0, 0.0, rp.amount, rp.note) FROM SupplierCommission rp WHERE rp.username = :username AND  rp.supplierName = :supplierName")
        List<SupplierDetailsDTO> findCommissionDetailsByUsernameAndSupplierName(String username, String supplierName);
 }
