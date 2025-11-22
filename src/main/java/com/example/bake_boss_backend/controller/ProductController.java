@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.bake_boss_backend.dto.ProductRetailerDTO;
 import com.example.bake_boss_backend.entity.ClosingSetup;
 import com.example.bake_boss_backend.entity.EmployeeInfo;
 import com.example.bake_boss_backend.entity.EmployeeTarget;
@@ -580,12 +581,12 @@ public class ProductController {
     }
 
     @GetMapping("/getSoldProduct")
-    public List<ProductStock> getSoldProduct(String username) {
+    public List<ProductRetailerDTO> getSoldProduct(String username) {
         return productStockService.getProductDistForCurrentMonth(username);
     }
 
     @GetMapping("/getDatewiseSoldProduct")
-    public List<ProductStock> getDatewiseSoldProduct(String username, LocalDate startDate, LocalDate endDate) {
+    public List<ProductRetailerDTO> getDatewiseSoldProduct(String username, LocalDate startDate, LocalDate endDate) {
         return productStockService.getDatewiseSoldProductStock(username, startDate, endDate);
     }
 

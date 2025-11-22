@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.bake_boss_backend.dto.ProductRetailerDTO;
 import com.example.bake_boss_backend.entity.ClosingSetup;
 import com.example.bake_boss_backend.entity.OrderInfo;
 import com.example.bake_boss_backend.entity.ProductStock;
@@ -26,11 +27,11 @@ public class ProductStockService {
     @Autowired
     private ClosingSetupRepository closingSetupRepository;
 
-    public List<ProductStock> getProductDistForCurrentMonth(String username) {
+    public List<ProductRetailerDTO> getProductDistForCurrentMonth(String username) {
         LocalDate now = LocalDate.now();
         int year = now.getYear();
         int month = now.getMonthValue();
-        return productStockRepository.findProductByStatus(year, month, username);
+        return productStockRepository.findProductWithRetailerDetails(year, month, username);
     }
 
     public List<ProductStock> getSalesProductDistForCurrentMonth(String username) {
@@ -40,8 +41,8 @@ public class ProductStockService {
         return productStockRepository.findProductBySalesPerson(year, month, username);
     }
 
-    public List<ProductStock> getDatewiseSoldProductStock(String username, LocalDate startDate, LocalDate endDate) {
-        return productStockRepository.findDatewiseSoldProductByUsername(username, startDate, endDate);
+    public List<ProductRetailerDTO> getDatewiseSoldProductStock(String username, LocalDate startDate, LocalDate endDate) {
+        return productStockRepository.findDatewiseSoldProductByUsername(startDate, endDate, username);
     }
 
     public List<ProductStock> getSalesDatewiseSoldProduct(String username, LocalDate startDate, LocalDate endDate) {

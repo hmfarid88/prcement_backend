@@ -21,6 +21,9 @@ public interface SupplierCommissionRepository extends JpaRepository<SupplierComm
       "FROM SupplierCommission sp WHERE sp.username = :username GROUP BY sp.supplierName")
   List<Object[]> findTotalCommissionGroupedBySupplierAndUsername(String username);
 
-   @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(rp.date, 'No', 0.0, 0.0, 0.0, rp.amount, rp.note) FROM SupplierCommission rp WHERE rp.username = :username AND  rp.supplierName = :supplierName")
+   @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(rp.date, 'No', 0.0, 0.0, 0.0, rp.amount, rp.note) FROM SupplierCommission rp WHERE rp.username = :username AND  rp.supplierName = :supplierName AND FUNCTION('YEAR', rp.date) = FUNCTION('YEAR', CURRENT_DATE) AND FUNCTION('MONTH', rp.date) = FUNCTION('MONTH', CURRENT_DATE)")
        List<SupplierDetailsDTO> findCommissionDetailsByUsernameAndSupplierName(String username, String supplierName);
+
+   @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(rp.date, 'No', 0.0, 0.0, 0.0, rp.amount, rp.note) FROM SupplierCommission rp WHERE rp.username = :username AND  rp.supplierName = :supplierName AND rp.date BETWEEN :startDate AND :endDate")
+       List<SupplierDetailsDTO> findDatewiseCommissionDetailsByUsernameAndSupplierName(String username, String supplierName, LocalDate startDate, LocalDate endDate);
 }

@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.example.bake_boss_backend.dto.ProductRetailerDTO;
 import com.example.bake_boss_backend.dto.RetailerDetailsDTO;
 import com.example.bake_boss_backend.dto.SupplierDetailsDTO;
 import com.example.bake_boss_backend.dto.TransportDetailsDTO;
@@ -26,11 +27,66 @@ public interface ProductStockrepository extends JpaRepository<ProductStock, Long
 
    List<ProductStock> findByUsernameAndInvoiceNo(String username, String invoiceNo);
 
-   @Query("SELECT ps FROM ProductStock ps WHERE ps.status='sold' AND YEAR(ps.date) = :year AND MONTH(ps.date) = :month AND ps.username=:username ORDER BY ps.date")
-   List<ProductStock> findProductByStatus(@Param("year") int year, @Param("month") int month, @Param("username") String username);
+//    @Query("SELECT ps FROM ProductStock ps WHERE ps.status='sold' AND YEAR(ps.date) = :year AND MONTH(ps.date) = :month AND ps.username=:username ORDER BY ps.date")
+//    List<ProductStock> findProductByStatus(@Param("year") int year, @Param("month") int month, @Param("username") String username);
 
-   @Query("SELECT ps FROM ProductStock ps WHERE ps.status='sold' AND  ps.username=:username AND ps.date BETWEEN :startDate AND :endDate ORDER BY ps.date")
-   List<ProductStock> findDatewiseSoldProductByUsername(String username, LocalDate startDate, LocalDate endDate);
+@Query("""
+    SELECT new com.example.bake_boss_backend.dto.ProductRetailerDTO(
+        ps.date,
+        r.category,
+        r.salesPerson,
+        ps.customer,
+        ps.note,
+        ps.productName,
+        ps.invoiceNo,
+        ps.transport,
+        ps.truckNo,
+        ps.rent,
+        ps.dpRate,
+        ps.productQty,
+        ps.productId
+    )
+    FROM ProductStock ps
+    JOIN RetailerInfo r ON ps.customer = r.retailerName
+    WHERE ps.status = 'sold'
+      AND YEAR(ps.date) = :year
+      AND MONTH(ps.date) = :month
+      AND ps.username = :username
+    ORDER BY ps.date
+""")
+List<ProductRetailerDTO> findProductWithRetailerDetails(
+    @Param("year") int year,
+    @Param("month") int month,
+    @Param("username") String username
+);
+
+@Query("""
+    SELECT new com.example.bake_boss_backend.dto.ProductRetailerDTO(
+        ps.date,
+        r.category,
+        r.salesPerson,
+        ps.customer,
+        ps.note,
+        ps.productName,
+        ps.invoiceNo,
+        ps.transport,
+        ps.truckNo,
+        ps.rent,
+        ps.dpRate,
+        ps.productQty,
+        ps.productId
+    )
+    FROM ProductStock ps
+    JOIN RetailerInfo r ON ps.customer = r.retailerName
+    WHERE ps.status = 'sold'AND ps.date BETWEEN :startDate AND :endDate AND ps.username = :username ORDER BY ps.date
+     
+""")
+List<ProductRetailerDTO> findDatewiseSoldProductByUsername(
+    LocalDate startDate, LocalDate endDate, String username
+    
+);
+//    @Query("SELECT ps FROM ProductStock ps WHERE ps.status='sold' AND  ps.username=:username AND ps.date BETWEEN :startDate AND :endDate ORDER BY ps.date")
+//    List<ProductStock> findDatewiseSoldProductByUsername(String username, LocalDate startDate, LocalDate endDate);
 
    @Query("SELECT ps FROM ProductStock ps JOIN RetailerInfo ri ON ps.customer = ri.retailerName WHERE ri.salesPerson = :username AND ps.status='sold' AND YEAR(ps.date) = :year AND MONTH(ps.date) = :month ORDER BY ps.date")
    List<ProductStock> findProductBySalesPerson(@Param("year") int year, @Param("month") int month, @Param("username") String username);
@@ -97,8 +153,11 @@ public interface ProductStockrepository extends JpaRepository<ProductStock, Long
    List<RetailerDetailsDTO> findProductDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName,
          LocalDate startDate, LocalDate endDate);
 
-   @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(ps.date, ps.productName, ps.productQty, ps.productQty*ps.purchasePrice, 0.0, 0.0, 'No') FROM ProductStock ps WHERE ps.username = :username AND ps.status='stored' AND ps.supplier = :supplierName")
+   @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(ps.date, ps.productName, ps.productQty, ps.productQty*ps.purchasePrice, 0.0, 0.0, 'No') FROM ProductStock ps WHERE ps.username = :username AND ps.status='stored' AND ps.supplier = :supplierName  AND FUNCTION('YEAR', ps.date) = FUNCTION('YEAR', CURRENT_DATE) AND FUNCTION('MONTH', ps.date) = FUNCTION('MONTH', CURRENT_DATE)")
    List<SupplierDetailsDTO> findProductDetailsByUsernameAndSupplierName(String username, String supplierName);
+
+   @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(ps.date, ps.productName, ps.productQty, ps.productQty*ps.purchasePrice, 0.0, 0.0, 'No') FROM ProductStock ps WHERE ps.username = :username AND ps.status='stored' AND ps.supplier = :supplierName  AND ps.date BETWEEN :startDate AND :endDate")
+   List<SupplierDetailsDTO> findDatewiseProductDetailsByUsernameAndSupplierName(String username, String supplierName, LocalDate startDate, LocalDate endDate);
 
    @Query("SELECT new com.example.bake_boss_backend.dto.TransportDetailsDTO(ps.date, ps.truckNo, SUM(ps.productQty), SUM(ps.rent), 0.0) FROM ProductStock ps WHERE ps.username = :username AND ps.status='sold' AND ps.transport = :transport  GROUP BY ps.date, ps.truckNo")
    List<TransportDetailsDTO> findRentDetailsByUsernameAndSupplierName(String username, String transport);

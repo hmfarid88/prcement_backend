@@ -1,5 +1,6 @@
 package com.example.bake_boss_backend.service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -121,6 +122,31 @@ public class SupplierBalanceService {
 
         return combinedDetails;
     }
+
+    public List<SupplierDetailsDTO> getDatewiseDetailsBySupplierAndUsername(String username, String supplierName, LocalDate startDate, LocalDate endDate) {
+        List<SupplierDetailsDTO> productValue = Optional.ofNullable(
+                productStockRepository.findDatewiseProductDetailsByUsernameAndSupplierName(username, supplierName, startDate, endDate))
+                .orElse(Collections.emptyList());
+
+        List<SupplierDetailsDTO> paymentValue = Optional.ofNullable(
+                supplierPaymentRepository.findDatewisePaymentDetailsByUsernameAndSupplierName(username, supplierName, startDate, endDate))
+                .orElse(Collections.emptyList());
+
+        List<SupplierDetailsDTO> commissionValue = Optional.ofNullable(
+                supplierCommissionRepository.findDatewiseCommissionDetailsByUsernameAndSupplierName(username, supplierName,startDate, endDate))
+                .orElse(Collections.emptyList());
+
+        List<SupplierDetailsDTO> combinedDetails = new ArrayList<>();
+        combinedDetails.addAll(productValue);
+        combinedDetails.addAll(paymentValue);
+        combinedDetails.addAll(commissionValue);
+
+        combinedDetails.sort(
+                Comparator.comparing(SupplierDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
+
+        return combinedDetails;
+    }
+
     public List<TransportDetailsDTO> getDetailsByTransportAndUsername(String username, String transport) {
         List<TransportDetailsDTO> rentValue = Optional.ofNullable(
                 productStockRepository.findRentDetailsByUsernameAndSupplierName(username, transport))

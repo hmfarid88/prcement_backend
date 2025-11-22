@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.bake_boss_backend.dto.CategoryDebitCreditDTO;
 import com.example.bake_boss_backend.dto.RetailerBalanceDTO;
 import com.example.bake_boss_backend.dto.RetailerDetailsDTO;
 import com.example.bake_boss_backend.entity.EmployeeInfo;
@@ -40,15 +41,45 @@ public class RetailerBalanceController {
      @Autowired
     private RetailerPaymentService retailerPaymentService;
 
-    @GetMapping("/retailerBalance")
-    public List<RetailerBalanceDTO> retailerBalance() {
-        return retailerBalanceService.retailerBalance();
+    // @GetMapping("/retailerBalance")
+    // public List<RetailerBalanceDTO> retailerBalance() {
+    //     return retailerBalanceService.retailerBalance();
+    // }
+
+    @GetMapping("/categoryRetailerBalance")
+    public List<CategoryDebitCreditDTO> categoryBalance(){
+        return retailerBalanceService.getCategoryWiseDebitCredit();
     }
 
-    @GetMapping("/datewiseRetailerBalance")
-    public List<RetailerBalanceDTO> datewiseRetailerBalance(LocalDate startDate, LocalDate endDate) {
-        return retailerBalanceService.datewiseRetailerBalance(startDate, endDate);
+    @GetMapping("/marketingRetailerBalance")
+    public List<CategoryDebitCreditDTO> marketingBalance(@RequestParam String category){
+        return retailerBalanceService.getMarketWiseDebitCredit(category);
     }
+
+    @GetMapping("/datewiseMarketingRetailerBalance")
+    public List<CategoryDebitCreditDTO> datewisemarketingBalance(@RequestParam String category, LocalDate startDate, LocalDate endDate){
+        return retailerBalanceService.getDatewiseMarketWiseDebitCredit(category, startDate, endDate);
+    }
+
+    @GetMapping("/marketwiseRetailerBalance")
+    public List<CategoryDebitCreditDTO> retailerBalance(@RequestParam String salesPerson){
+        return retailerBalanceService.getMarketRetailerWiseDebitCredit(salesPerson);
+    }
+
+    @GetMapping("/datewiseMarketRetailerBalance")
+    public List<CategoryDebitCreditDTO> datewiseRetailerBalance(@RequestParam String salesPerson, LocalDate startDate, LocalDate endDate){
+        return retailerBalanceService.getDatewiseMarketRetailerWiseDebitCredit(salesPerson, startDate, endDate);
+    }
+
+    @GetMapping("/datewiseCategoryRetailerBalance")
+    public List<CategoryDebitCreditDTO> datewisecategoryBalance(LocalDate startDate, LocalDate endDate){
+        return retailerBalanceService.getdatewiseCategoryWiseDebitCredit(startDate, endDate);
+    }
+    
+    // @GetMapping("/datewiseRetailerBalance")
+    // public List<RetailerBalanceDTO> datewiseRetailerBalance(LocalDate startDate, LocalDate endDate) {
+    //     return retailerBalanceService.datewiseRetailerBalance(startDate, endDate);
+    // }
 
     @GetMapping("/salesRetailerBalance")
     public List<RetailerBalanceDTO> salesRetailerBalance(@RequestParam String salesPerson) {

@@ -1,5 +1,6 @@
 package com.example.bake_boss_backend.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,10 +26,14 @@ public class SupplierBalanceController {
         return supplierBalanceService.calculateSuppliersBalanceByUsername(username);
     }
 
-  
-    @GetMapping("/supplier-details")
+      @GetMapping("/supplier-details")
     public List<SupplierDetailsDTO> getDatewiseDetailsBySupplierAndUsername(@RequestParam String username, @RequestParam String supplierName){
         return supplierBalanceService.getDetailsBySupplierAndUsername(username, supplierName);
+    }
+
+      @GetMapping("/datewise-supplier-details")
+    public List<SupplierDetailsDTO> getDatewiseSupplierDetails(@RequestParam String username, @RequestParam String supplierName, LocalDate startDate, LocalDate endDate){
+        return supplierBalanceService.getDatewiseDetailsBySupplierAndUsername(username, supplierName, startDate, endDate);
     }
 
       @GetMapping("/transport/balance")
