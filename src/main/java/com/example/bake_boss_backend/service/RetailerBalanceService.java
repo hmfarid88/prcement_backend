@@ -61,19 +61,23 @@ public class RetailerBalanceService {
     private EmployeeTargetRepository employeeTargetRepository;
 
     // public List<RetailerBalanceDTO> retailerBalance() {
-    //     ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
+    // ClosingSetup lastClosingSetup =
+    // closingSetupRepository.findLastClosingSetup();
 
-    //     if (lastClosingSetup != null) {
-    //         LocalDate startDate = lastClosingSetup.getStartDate();
-    //         LocalDate endDate = lastClosingSetup.getEndDate();
-    //         return retailerPaymentRepository.findRetailerBalanceBetweenDates(startDate, endDate);
-    //     }
-    //     return List.of();
+    // if (lastClosingSetup != null) {
+    // LocalDate startDate = lastClosingSetup.getStartDate();
+    // LocalDate endDate = lastClosingSetup.getEndDate();
+    // return retailerPaymentRepository.findRetailerBalanceBetweenDates(startDate,
+    // endDate);
+    // }
+    // return List.of();
 
     // }
 
-    // public List<RetailerBalanceDTO> datewiseRetailerBalance(LocalDate startDate, LocalDate endDate) {
-    //     return retailerPaymentRepository.findRetailerBalanceBetweenDates(startDate, endDate);
+    // public List<RetailerBalanceDTO> datewiseRetailerBalance(LocalDate startDate,
+    // LocalDate endDate) {
+    // return retailerPaymentRepository.findRetailerBalanceBetweenDates(startDate,
+    // endDate);
 
     // }
 
@@ -96,717 +100,780 @@ public class RetailerBalanceService {
         return retailerPaymentRepository.findSalesRetailerBalanceBetweenDates(salesPerson, startDate, endDate);
     }
 
+    public List<RetailerDetailsDTO> retailerDetailsForCurrentMonth(String retailerName, String username) {
+        LocalDate now = LocalDate.now();
+        int year = now.getYear();
+        int month = now.getMonthValue();
+        ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
 
-public List<RetailerDetailsDTO> retailerDetailsForCurrentMonth(String retailerName, String username) {
-    LocalDate now = LocalDate.now();
-    int year = now.getYear();
-    int month = now.getMonthValue();
-    ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
+        if (lastClosingSetup != null) {
 
-    if (lastClosingSetup != null) {
+            // 1️⃣ Calculate opening balance (all transactions before this month)
+            List<RetailerDetailsDTO> prevProduct = Optional.ofNullable(
+                    productStockrepository.findProductDetailsByUsernameAndRetailerNameBeforemonth(username,
+                            retailerName, year, month))
+                    .orElse(Collections.emptyList());
 
-        // 1️⃣ Calculate opening balance (all transactions before this month)
-        List<RetailerDetailsDTO> prevProduct = Optional.ofNullable(
-                productStockrepository.findProductDetailsByUsernameAndRetailerNameBeforemonth(username, retailerName, year, month))
-                .orElse(Collections.emptyList());
+            List<RetailerDetailsDTO> prevPayment = Optional.ofNullable(
+                    retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerNameBeforemonth(username,
+                            retailerName, year, month))
+                    .orElse(Collections.emptyList());
 
-        List<RetailerDetailsDTO> prevPayment = Optional.ofNullable(
-                retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerNameBeforemonth(username, retailerName, year, month))
-                .orElse(Collections.emptyList());
+            List<RetailerDetailsDTO> prevCommission = Optional.ofNullable(
+                    retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerNameBeforemonth(username,
+                            retailerName, year, month))
+                    .orElse(Collections.emptyList());
 
-        List<RetailerDetailsDTO> prevCommission = Optional.ofNullable(
-                retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerNameBeforemonth(username, retailerName, year, month))
-                .orElse(Collections.emptyList());
+            double openingBalance = 0.0;
 
-        double openingBalance = 0.0;
-
-        for (RetailerDetailsDTO dto : prevProduct) {
-            openingBalance += dto.getProductValue() != null ? dto.getProductValue() : 0.0;
-        }
-        for (RetailerDetailsDTO dto : prevPayment) {
-            openingBalance -= dto.getPayment() != null ? dto.getPayment() : 0.0;
-        }
-        for (RetailerDetailsDTO dto : prevCommission) {
-            openingBalance -= dto.getCommission() != null ? dto.getCommission() : 0.0;
-        }
-
-        // 2️⃣ Fetch current month data
-        List<RetailerDetailsDTO> productValue = Optional.ofNullable(
-                productStockrepository.findProductDetailsByUsernameAndRetailerNameCurrentmonth(username, retailerName, year, month))
-                .orElse(Collections.emptyList());
-
-        List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
-                retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerNameCurrentmonth(username, retailerName, year, month))
-                .orElse(Collections.emptyList());
-
-        List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
-                retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerNameCurrentmonth(username, retailerName, year, month))
-                .orElse(Collections.emptyList());
-
-        List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
-        combinedDetails.addAll(productValue);
-        combinedDetails.addAll(paymentValue);
-        combinedDetails.addAll(commissionValue);
-
-        // 3️⃣ Sort current month rows by date
-        combinedDetails.sort(
-                Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
-
-        // 4️⃣ Prepare final result with opening balance
-        List<RetailerDetailsDTO> finalResult = new ArrayList<>();
-
-        RetailerDetailsDTO openingRow = new RetailerDetailsDTO(
-                now.withDayOfMonth(1).minusDays(1), // last day of prev month
-                "Opening Balance", null, null, null, null, null, null, openingBalance
-        );
-        finalResult.add(openingRow);
-
-        // 5️⃣ Running balance for current month
-        double runningBalance = openingBalance;
-        for (RetailerDetailsDTO dto : combinedDetails) {
-            double value = 0.0;
-
-            if (dto.getProductValue() != null) {
-                value += dto.getProductValue();
+            for (RetailerDetailsDTO dto : prevProduct) {
+                openingBalance += dto.getProductValue() != null ? dto.getProductValue() : 0.0;
             }
-            if (dto.getPayment() != null) {
-                value -= dto.getPayment();
+            for (RetailerDetailsDTO dto : prevPayment) {
+                openingBalance -= dto.getPayment() != null ? dto.getPayment() : 0.0;
             }
-            if (dto.getCommission() != null) {
-                value -= dto.getCommission();
+            for (RetailerDetailsDTO dto : prevCommission) {
+                openingBalance -= dto.getCommission() != null ? dto.getCommission() : 0.0;
             }
 
-            runningBalance += value;
-            dto.setBalance(runningBalance);
-            finalResult.add(dto);
-        }
+            // 2️⃣ Fetch current month data
+            List<RetailerDetailsDTO> productValue = Optional.ofNullable(
+                    productStockrepository.findProductDetailsByUsernameAndRetailerNameCurrentmonth(username,
+                            retailerName, year, month))
+                    .orElse(Collections.emptyList());
 
-        return finalResult;
-    }
+            List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
+                    retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerNameCurrentmonth(username,
+                            retailerName, year, month))
+                    .orElse(Collections.emptyList());
 
-    return Collections.emptyList();
-}
+            List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
+                    retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerNameCurrentmonth(username,
+                            retailerName, year, month))
+                    .orElse(Collections.emptyList());
 
-public List<RetailerDetailsDTO> retailerDetailsDatetodate(String username, String retailerName, LocalDate startDate, LocalDate endDate) {
-   
-    ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
+            List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
+            combinedDetails.addAll(productValue);
+            combinedDetails.addAll(paymentValue);
+            combinedDetails.addAll(commissionValue);
 
-    if (lastClosingSetup != null) {
+            // 3️⃣ Sort current month rows by date
+            combinedDetails.sort(
+                    Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
 
-        // 1️⃣ Calculate opening balance (all transactions before this month)
-        List<RetailerDetailsDTO> prevProduct = Optional.ofNullable(
-                productStockrepository.findProductDetailsByUsernameAndRetailerNameBeforeDate(username, retailerName, startDate))
-                .orElse(Collections.emptyList());
+            // 4️⃣ Prepare final result with opening balance
+            List<RetailerDetailsDTO> finalResult = new ArrayList<>();
 
-        List<RetailerDetailsDTO> prevPayment = Optional.ofNullable(
-                retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerNameBeforedate(username, retailerName, startDate))
-                .orElse(Collections.emptyList());
+            RetailerDetailsDTO openingRow = new RetailerDetailsDTO(
+                    now.withDayOfMonth(1).minusDays(1), // last day of prev month
+                    "Opening Balance", null, null, null, null, null, null, openingBalance);
+            finalResult.add(openingRow);
 
-        List<RetailerDetailsDTO> prevCommission = Optional.ofNullable(
-                retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerNameBeforeDate(username, retailerName, startDate))
-                .orElse(Collections.emptyList());
+            // 5️⃣ Running balance for current month
+            double runningBalance = openingBalance;
+            for (RetailerDetailsDTO dto : combinedDetails) {
+                double value = 0.0;
 
-        double openingBalance = 0.0;
+                if (dto.getProductValue() != null) {
+                    value += dto.getProductValue();
+                }
+                if (dto.getPayment() != null) {
+                    value -= dto.getPayment();
+                }
+                if (dto.getCommission() != null) {
+                    value -= dto.getCommission();
+                }
 
-        for (RetailerDetailsDTO dto : prevProduct) {
-            openingBalance += dto.getProductValue() != null ? dto.getProductValue() : 0.0;
-        }
-        for (RetailerDetailsDTO dto : prevPayment) {
-            openingBalance -= dto.getPayment() != null ? dto.getPayment() : 0.0;
-        }
-        for (RetailerDetailsDTO dto : prevCommission) {
-            openingBalance -= dto.getCommission() != null ? dto.getCommission() : 0.0;
-        }
-
-        // 2️⃣ Fetch current month data
-        List<RetailerDetailsDTO> productValue = Optional.ofNullable(
-                productStockrepository.findProductDetailsByUsernameAndRetailerNameDatetodate(username, retailerName, startDate, endDate))
-                .orElse(Collections.emptyList());
-
-        List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
-                retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerNameDatetodate(username, retailerName, startDate, endDate))
-                .orElse(Collections.emptyList());
-
-        List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
-                retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerNameDatetoDate(username, retailerName, startDate, endDate))
-                .orElse(Collections.emptyList());
-
-        List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
-        combinedDetails.addAll(productValue);
-        combinedDetails.addAll(paymentValue);
-        combinedDetails.addAll(commissionValue);
-
-        // 3️⃣ Sort current month rows by date
-        combinedDetails.sort(
-                Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
-
-        // 4️⃣ Prepare final result with opening balance
-        List<RetailerDetailsDTO> finalResult = new ArrayList<>();
-
-        RetailerDetailsDTO openingRow = new RetailerDetailsDTO(
-                startDate.withDayOfMonth(1).minusDays(1), // last day of prev month
-                "Opening Balance", null, null, null, null, null, null, openingBalance
-        );
-        finalResult.add(openingRow);
-
-        // 5️⃣ Running balance for current month
-        double runningBalance = openingBalance;
-        for (RetailerDetailsDTO dto : combinedDetails) {
-            double value = 0.0;
-
-            if (dto.getProductValue() != null) {
-                value += dto.getProductValue();
-            }
-            if (dto.getPayment() != null) {
-                value -= dto.getPayment();
-            }
-            if (dto.getCommission() != null) {
-                value -= dto.getCommission();
+                runningBalance += value;
+                dto.setBalance(runningBalance);
+                finalResult.add(dto);
             }
 
-            runningBalance += value;
-            dto.setBalance(runningBalance);
-            finalResult.add(dto);
+            return finalResult;
         }
 
-        return finalResult;
+        return Collections.emptyList();
     }
 
-    return Collections.emptyList();
-}
+    public List<RetailerDetailsDTO> retailerDetailsDatetodate(String username, String retailerName, LocalDate startDate,
+            LocalDate endDate) {
 
-// public List<CategoryDebitCreditDTO> getCategoryWiseDebitCredit() {
-//     List<CategoryBalanceDTO> rawData = retailerPaymentRepository.findCategoryRawBalanceForCurrentMonth();
+        ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
 
-//     Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
+        if (lastClosingSetup != null) {
 
-//     for (CategoryBalanceDTO dto : rawData) {
-//     double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
-//     double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
-//             + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+            // 1️⃣ Calculate opening balance (all transactions before this month)
+            List<RetailerDetailsDTO> prevProduct = Optional.ofNullable(
+                    productStockrepository.findProductDetailsByUsernameAndRetailerNameBeforeDate(username, retailerName,
+                            startDate))
+                    .orElse(Collections.emptyList());
 
-//     double debit = 0.0;
-//     double credit = 0.0;
+            List<RetailerDetailsDTO> prevPayment = Optional.ofNullable(
+                    retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerNameBeforedate(username,
+                            retailerName, startDate))
+                    .orElse(Collections.emptyList());
 
-//     if (productValue < totalPaid) {
-//         debit = totalPaid - productValue;
-//     } else if (productValue > totalPaid) {
-//         credit = productValue - totalPaid;
-//     }
+            List<RetailerDetailsDTO> prevCommission = Optional.ofNullable(
+                    retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerNameBeforeDate(username,
+                            retailerName, startDate))
+                    .orElse(Collections.emptyList());
 
-//     CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
-//     if (existing == null) {
-//         existing = new CategoryDebitCreditDTO(dto.getCategory(), debit, credit);
-//     } else {
-//         existing.setDebit(existing.getDebit() + debit);
-//         existing.setCredit(existing.getCredit() + credit);
-//     }
-//     categoryMap.put(dto.getCategory(), existing);
-// }
+            double openingBalance = 0.0;
 
+            for (RetailerDetailsDTO dto : prevProduct) {
+                openingBalance += dto.getProductValue() != null ? dto.getProductValue() : 0.0;
+            }
+            for (RetailerDetailsDTO dto : prevPayment) {
+                openingBalance -= dto.getPayment() != null ? dto.getPayment() : 0.0;
+            }
+            for (RetailerDetailsDTO dto : prevCommission) {
+                openingBalance -= dto.getCommission() != null ? dto.getCommission() : 0.0;
+            }
 
-//     return new ArrayList<>(categoryMap.values());
-// }
+            // 2️⃣ Fetch current month data
+            List<RetailerDetailsDTO> productValue = Optional.ofNullable(
+                    productStockrepository.findProductDetailsByUsernameAndRetailerNameDatetodate(username, retailerName,
+                            startDate, endDate))
+                    .orElse(Collections.emptyList());
 
-public List<CategoryDebitCreditDTO> getCategoryWiseDebitCredit() {
-    List<CategoryBalanceDTO> currentMonthData = retailerPaymentRepository.findCategoryRawBalanceForCurrentMonth();
-    List<CategoryBalanceDTO> openingData = retailerPaymentRepository.findCategoryOpeningBalanceBeforeCurrentMonth();
+            List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
+                    retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerNameDatetodate(username,
+                            retailerName, startDate, endDate))
+                    .orElse(Collections.emptyList());
 
-    Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
+            List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
+                    retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerNameDatetoDate(username,
+                            retailerName, startDate, endDate))
+                    .orElse(Collections.emptyList());
 
-    // Step 1: Compute opening balances first
-    for (CategoryBalanceDTO dto : openingData) {
-        double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
-        double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
-                + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
-        double openingBalance = productValue - totalPaid;
+            List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
+            combinedDetails.addAll(productValue);
+            combinedDetails.addAll(paymentValue);
+            combinedDetails.addAll(commissionValue);
 
-        CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
-        if (existing == null) {
-            existing = new CategoryDebitCreditDTO(dto.getCategory(), 0.0, 0.0, 0.0);
+            // 3️⃣ Sort current month rows by date
+            combinedDetails.sort(
+                    Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
+
+            // 4️⃣ Prepare final result with opening balance
+            List<RetailerDetailsDTO> finalResult = new ArrayList<>();
+
+            RetailerDetailsDTO openingRow = new RetailerDetailsDTO(
+                    startDate.withDayOfMonth(1).minusDays(1), // last day of prev month
+                    "Opening Balance", null, null, null, null, null, null, openingBalance);
+            finalResult.add(openingRow);
+
+            // 5️⃣ Running balance for current month
+            double runningBalance = openingBalance;
+            for (RetailerDetailsDTO dto : combinedDetails) {
+                double value = 0.0;
+
+                if (dto.getProductValue() != null) {
+                    value += dto.getProductValue();
+                }
+                if (dto.getPayment() != null) {
+                    value -= dto.getPayment();
+                }
+                if (dto.getCommission() != null) {
+                    value -= dto.getCommission();
+                }
+
+                runningBalance += value;
+                dto.setBalance(runningBalance);
+                finalResult.add(dto);
+            }
+
+            return finalResult;
         }
-        existing.setOpeningBalance(existing.getOpeningBalance() + openingBalance);
-        categoryMap.put(dto.getCategory(), existing);
+
+        return Collections.emptyList();
     }
 
-    // Step 2: Compute debit/credit for current month
-    for (CategoryBalanceDTO dto : currentMonthData) {
-        double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
-        double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
-                + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+    // public List<CategoryDebitCreditDTO> getCategoryWiseDebitCredit() {
+    // List<CategoryBalanceDTO> rawData =
+    // retailerPaymentRepository.findCategoryRawBalanceForCurrentMonth();
 
-        double debit = 0.0;
-        double credit = 0.0;
+    // Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
 
-        if (productValue < totalPaid) {
-            debit = totalPaid - productValue;
-        } else if (productValue > totalPaid) {
-            credit = productValue - totalPaid;
+    // for (CategoryBalanceDTO dto : rawData) {
+    // double productValue =
+    // Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
+    // double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
+    // + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+
+    // double debit = 0.0;
+    // double credit = 0.0;
+
+    // if (productValue < totalPaid) {
+    // debit = totalPaid - productValue;
+    // } else if (productValue > totalPaid) {
+    // credit = productValue - totalPaid;
+    // }
+
+    // CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+    // if (existing == null) {
+    // existing = new CategoryDebitCreditDTO(dto.getCategory(), debit, credit);
+    // } else {
+    // existing.setDebit(existing.getDebit() + debit);
+    // existing.setCredit(existing.getCredit() + credit);
+    // }
+    // categoryMap.put(dto.getCategory(), existing);
+    // }
+
+    // return new ArrayList<>(categoryMap.values());
+    // }
+
+    public List<CategoryDebitCreditDTO> getCategoryWiseDebitCredit() {
+        List<CategoryBalanceDTO> currentMonthData = retailerPaymentRepository.findCategoryRawBalanceForCurrentMonth();
+        List<CategoryBalanceDTO> openingData = retailerPaymentRepository.findCategoryOpeningBalanceBeforeCurrentMonth();
+
+        Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
+
+        // Step 1: Compute opening balances first
+        for (CategoryBalanceDTO dto : openingData) {
+            double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
+            double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
+                    + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+            double openingBalance = productValue - totalPaid;
+
+            CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+            if (existing == null) {
+                existing = new CategoryDebitCreditDTO(dto.getCategory(), 0.0, 0.0, 0.0, 0.0);
+            }
+            existing.setOpeningBalance(existing.getOpeningBalance() + openingBalance);
+            categoryMap.put(dto.getCategory(), existing);
         }
 
-        CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
-        if (existing == null) {
-            existing = new CategoryDebitCreditDTO(dto.getCategory(), debit, credit, 0.0);
-        } else {
-            existing.setDebit(existing.getDebit() + debit);
-            existing.setCredit(existing.getCredit() + credit);
+        // Step 2: Compute debit/credit for current month
+        for (CategoryBalanceDTO dto : currentMonthData) {
+            double productQty = Optional.ofNullable(dto.getTotalProductQty()).orElse(0.0);
+            double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
+            double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
+                    + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+
+            // double debit = 0.0;
+            // double credit = 0.0;
+
+            // if (productValue < totalPaid) {
+            // debit = totalPaid - productValue;
+            // } else if (productValue > totalPaid) {
+            // credit = productValue - totalPaid;
+            // }
+
+            CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+            if (existing == null) {
+                existing = new CategoryDebitCreditDTO(dto.getCategory(), productQty, productValue, totalPaid, 0.0);
+            } else {
+                existing.setQty(existing.getQty() + productQty);
+                existing.setDebit(existing.getDebit() + productValue);
+                existing.setCredit(existing.getCredit() + totalPaid);
+            }
+            categoryMap.put(dto.getCategory(), existing);
         }
-        categoryMap.put(dto.getCategory(), existing);
+
+        return new ArrayList<>(categoryMap.values());
     }
 
-    return new ArrayList<>(categoryMap.values());
-}
+    public List<CategoryDebitCreditDTO> getMarketWiseDebitCredit(String category) {
+        List<CategoryBalanceDTO> currentMonthData = retailerPaymentRepository
+                .findMarketingBalanceForCurrentMonth(category);
+        List<CategoryBalanceDTO> openingData = retailerPaymentRepository
+                .findMarketOpeningBalanceBeforeCurrentMonth(category);
 
-public List<CategoryDebitCreditDTO> getMarketWiseDebitCredit(String category) {
-    List<CategoryBalanceDTO> currentMonthData = retailerPaymentRepository.findMarketingBalanceForCurrentMonth(category);
-    List<CategoryBalanceDTO> openingData = retailerPaymentRepository.findMarketOpeningBalanceBeforeCurrentMonth(category);
+        Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
 
-    Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
+        // Step 1: Compute opening balances first
+        for (CategoryBalanceDTO dto : openingData) {
+            double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
+            double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
+                    + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+            double openingBalance = productValue - totalPaid;
 
-    // Step 1: Compute opening balances first
-    for (CategoryBalanceDTO dto : openingData) {
-        double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
-        double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
-                + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
-        double openingBalance = productValue - totalPaid;
-
-        CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
-        if (existing == null) {
-            existing = new CategoryDebitCreditDTO(dto.getCategory(), 0.0, 0.0, 0.0);
+            CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+            if (existing == null) {
+                existing = new CategoryDebitCreditDTO(dto.getCategory(), 0.0, 0.0, 0.0, 0.0);
+            }
+            existing.setOpeningBalance(existing.getOpeningBalance() + openingBalance);
+            categoryMap.put(dto.getCategory(), existing);
         }
-        existing.setOpeningBalance(existing.getOpeningBalance() + openingBalance);
-        categoryMap.put(dto.getCategory(), existing);
+
+        // Step 2: Compute debit/credit for current month
+        for (CategoryBalanceDTO dto : currentMonthData) {
+            double productQty = Optional.ofNullable(dto.getTotalProductQty()).orElse(0.0);
+            double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
+            double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
+                    + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+
+            // double debit = 0.0;
+            // double credit = 0.0;
+
+            // if (productValue < totalPaid) {
+            // debit = totalPaid - productValue;
+            // } else if (productValue > totalPaid) {
+            // credit = productValue - totalPaid;
+            // }
+
+            CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+            if (existing == null) {
+                existing = new CategoryDebitCreditDTO(dto.getCategory(), productQty, productValue, totalPaid, 0.0);
+            } else {
+                existing.setQty(existing.getQty() + productQty);
+                existing.setDebit(existing.getDebit() + productValue);
+                existing.setCredit(existing.getCredit() + totalPaid);
+            }
+            categoryMap.put(dto.getCategory(), existing);
+        }
+
+        return new ArrayList<>(categoryMap.values());
     }
 
-    // Step 2: Compute debit/credit for current month
-    for (CategoryBalanceDTO dto : currentMonthData) {
-        double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
-        double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
-                + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+    public List<CategoryDebitCreditDTO> getDatewiseMarketWiseDebitCredit(String category, LocalDate startDate,
+            LocalDate endDate) {
+        List<CategoryBalanceDTO> currentMonthData = retailerPaymentRepository.findDatewiseMarketingBalance(category,
+                startDate, endDate);
+        List<CategoryBalanceDTO> openingData = retailerPaymentRepository.findMarketOpeningBalanceBeforeDate(category,
+                startDate);
 
-        double debit = 0.0;
-        double credit = 0.0;
+        Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
 
-        if (productValue < totalPaid) {
-            debit = totalPaid - productValue;
-        } else if (productValue > totalPaid) {
-            credit = productValue - totalPaid;
+        // Step 1: Compute opening balances first
+        for (CategoryBalanceDTO dto : openingData) {
+            double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
+            double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
+                    + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+            double openingBalance = productValue - totalPaid;
+
+            CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+            if (existing == null) {
+                existing = new CategoryDebitCreditDTO(dto.getCategory(), 0.0, 0.0, 0.0, 0.0);
+            }
+            existing.setOpeningBalance(existing.getOpeningBalance() + openingBalance);
+            categoryMap.put(dto.getCategory(), existing);
         }
 
-        CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
-        if (existing == null) {
-            existing = new CategoryDebitCreditDTO(dto.getCategory(), debit, credit, 0.0);
-        } else {
-            existing.setDebit(existing.getDebit() + debit);
-            existing.setCredit(existing.getCredit() + credit);
+        // Step 2: Compute debit/credit for current month
+        for (CategoryBalanceDTO dto : currentMonthData) {
+            double productQty = Optional.ofNullable(dto.getTotalProductQty()).orElse(0.0);
+            double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
+            double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
+                    + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+
+            // double debit = 0.0;
+            // double credit = 0.0;
+
+            // if (productValue < totalPaid) {
+            // debit = totalPaid - productValue;
+            // } else if (productValue > totalPaid) {
+            // credit = productValue - totalPaid;
+            // }
+
+            CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+            if (existing == null) {
+                existing = new CategoryDebitCreditDTO(dto.getCategory(), productQty, productValue, totalPaid, 0.0);
+            } else {
+                existing.setQty(existing.getQty() + productQty);
+                existing.setDebit(existing.getDebit() + productValue);
+                existing.setCredit(existing.getCredit() + totalPaid);
+            }
+            categoryMap.put(dto.getCategory(), existing);
         }
-        categoryMap.put(dto.getCategory(), existing);
+
+        return new ArrayList<>(categoryMap.values());
     }
 
-    return new ArrayList<>(categoryMap.values());
-}
+    public List<CategoryDebitCreditDTO> getMarketRetailerWiseDebitCredit(String salesPerson) {
+        List<CategoryBalanceDTO> currentMonthData = retailerPaymentRepository
+                .findMarketingRetailerBalanceForCurrentMonth(salesPerson);
+        List<CategoryBalanceDTO> openingData = retailerPaymentRepository
+                .findMarketRetailerOpeningBalanceBeforeCurrentMonth(salesPerson);
 
-public List<CategoryDebitCreditDTO> getDatewiseMarketWiseDebitCredit(String category, LocalDate startDate, LocalDate endDate) {
-    List<CategoryBalanceDTO> currentMonthData = retailerPaymentRepository.findDatewiseMarketingBalance(category, startDate, endDate);
-    List<CategoryBalanceDTO> openingData = retailerPaymentRepository.findMarketOpeningBalanceBeforeDate(category, startDate);
+        Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
 
-    Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
+        // Step 1: Compute opening balances first
+        for (CategoryBalanceDTO dto : openingData) {
+            double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
+            double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
+                    + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+            double openingBalance = productValue - totalPaid;
 
-    // Step 1: Compute opening balances first
-    for (CategoryBalanceDTO dto : openingData) {
-        double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
-        double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
-                + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
-        double openingBalance = productValue - totalPaid;
-
-        CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
-        if (existing == null) {
-            existing = new CategoryDebitCreditDTO(dto.getCategory(), 0.0, 0.0, 0.0);
+            CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+            if (existing == null) {
+                existing = new CategoryDebitCreditDTO(dto.getCategory(), 0.0, 0.0, 0.0, 0.0);
+            }
+            existing.setOpeningBalance(existing.getOpeningBalance() + openingBalance);
+            categoryMap.put(dto.getCategory(), existing);
         }
-        existing.setOpeningBalance(existing.getOpeningBalance() + openingBalance);
-        categoryMap.put(dto.getCategory(), existing);
+
+        // Step 2: Compute debit/credit for current month
+        for (CategoryBalanceDTO dto : currentMonthData) {
+            double productQty = Optional.ofNullable(dto.getTotalProductQty()).orElse(0.0);
+            double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
+            double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
+                    + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+
+            // double debit = 0.0;
+            // double credit = 0.0;
+
+            // if (productValue < totalPaid) {
+            // debit = totalPaid - productValue;
+            // } else if (productValue > totalPaid) {
+            // credit = productValue - totalPaid;
+            // }
+
+            CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+            if (existing == null) {
+                existing = new CategoryDebitCreditDTO(dto.getCategory(), productQty, productValue, totalPaid, 0.0);
+            } else {
+                existing.setQty(existing.getQty() + productQty);
+                existing.setDebit(existing.getDebit() + productValue);
+                existing.setCredit(existing.getCredit() + totalPaid);
+            }
+            categoryMap.put(dto.getCategory(), existing);
+        }
+
+        return new ArrayList<>(categoryMap.values());
     }
 
-    // Step 2: Compute debit/credit for current month
-    for (CategoryBalanceDTO dto : currentMonthData) {
-        double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
-        double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
-                + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+    public List<CategoryDebitCreditDTO> getDatewiseMarketRetailerWiseDebitCredit(String salesPerson,
+            LocalDate startDate, LocalDate endDate) {
+        List<CategoryBalanceDTO> currentMonthData = retailerPaymentRepository
+                .findDatewiseMarketingRetailerBalance(salesPerson, startDate, endDate);
+        List<CategoryBalanceDTO> openingData = retailerPaymentRepository
+                .findMarketRetailerOpeningBalanceBeforeDate(salesPerson, startDate);
 
-        double debit = 0.0;
-        double credit = 0.0;
+        Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
 
-        if (productValue < totalPaid) {
-            debit = totalPaid - productValue;
-        } else if (productValue > totalPaid) {
-            credit = productValue - totalPaid;
+        // Step 1: Compute opening balances first
+        for (CategoryBalanceDTO dto : openingData) {
+            double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
+            double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
+                    + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+            double openingBalance = productValue - totalPaid;
+
+            CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+            if (existing == null) {
+                existing = new CategoryDebitCreditDTO(dto.getCategory(), 0.0, 0.0, 0.0, 0.0);
+            }
+            existing.setOpeningBalance(existing.getOpeningBalance() + openingBalance);
+            categoryMap.put(dto.getCategory(), existing);
         }
 
-        CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
-        if (existing == null) {
-            existing = new CategoryDebitCreditDTO(dto.getCategory(), debit, credit, 0.0);
-        } else {
-            existing.setDebit(existing.getDebit() + debit);
-            existing.setCredit(existing.getCredit() + credit);
+        // Step 2: Compute debit/credit for current month
+        for (CategoryBalanceDTO dto : currentMonthData) {
+            double productQty = Optional.ofNullable(dto.getTotalProductQty()).orElse(0.0);
+            double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
+            double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
+                    + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+
+            // double debit = 0.0;
+            // double credit = 0.0;
+
+            // if (productValue < totalPaid) {
+            // debit = totalPaid - productValue;
+            // } else if (productValue > totalPaid) {
+            // credit = productValue - totalPaid;
+            // }
+
+            CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+            if (existing == null) {
+                existing = new CategoryDebitCreditDTO(dto.getCategory(), productQty, productValue, totalPaid, 0.0);
+            } else {
+                existing.setQty(existing.getQty() + productQty);
+                existing.setDebit(existing.getDebit() + productValue);
+                existing.setCredit(existing.getCredit() + totalPaid);
+            }
+            categoryMap.put(dto.getCategory(), existing);
         }
-        categoryMap.put(dto.getCategory(), existing);
+
+        return new ArrayList<>(categoryMap.values());
     }
 
-    return new ArrayList<>(categoryMap.values());
-}
+    // datewise
+    public List<CategoryDebitCreditDTO> getdatewiseCategoryWiseDebitCredit(LocalDate startDate, LocalDate endDate) {
+        List<CategoryBalanceDTO> currentMonthData = retailerPaymentRepository.findDatewiseCategoryBalance(startDate,
+                endDate);
+        List<CategoryBalanceDTO> openingData = retailerPaymentRepository
+                .findCategoryOpeningBalanceBeforeDate(startDate);
 
-public List<CategoryDebitCreditDTO> getMarketRetailerWiseDebitCredit(String salesPerson) {
-    List<CategoryBalanceDTO> currentMonthData = retailerPaymentRepository.findMarketingRetailerBalanceForCurrentMonth(salesPerson);
-    List<CategoryBalanceDTO> openingData = retailerPaymentRepository.findMarketRetailerOpeningBalanceBeforeCurrentMonth(salesPerson);
+        Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
 
-    Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
+        // Step 1: Compute opening balances first
+        for (CategoryBalanceDTO dto : openingData) {
+            double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
+            double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
+                    + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+            double openingBalance = productValue - totalPaid;
 
-    // Step 1: Compute opening balances first
-    for (CategoryBalanceDTO dto : openingData) {
-        double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
-        double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
-                + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
-        double openingBalance = productValue - totalPaid;
-
-        CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
-        if (existing == null) {
-            existing = new CategoryDebitCreditDTO(dto.getCategory(), 0.0, 0.0, 0.0);
+            CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+            if (existing == null) {
+                existing = new CategoryDebitCreditDTO(dto.getCategory(), 0.0, 0.0, 0.0, 0.0);
+            }
+            existing.setOpeningBalance(existing.getOpeningBalance() + openingBalance);
+            categoryMap.put(dto.getCategory(), existing);
         }
-        existing.setOpeningBalance(existing.getOpeningBalance() + openingBalance);
-        categoryMap.put(dto.getCategory(), existing);
+
+        // Step 2: Compute debit/credit for current month
+        for (CategoryBalanceDTO dto : currentMonthData) {
+            double productQty = Optional.ofNullable(dto.getTotalProductQty()).orElse(0.0);
+            double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
+            double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
+                    + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+
+            // double debit = 0.0;
+            // double credit = 0.0;
+
+            // if (productValue < totalPaid) {
+            // debit = totalPaid - productValue;
+            // } else if (productValue > totalPaid) {
+            // credit = productValue - totalPaid;
+            // }
+
+            CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+            if (existing == null) {
+                existing = new CategoryDebitCreditDTO(dto.getCategory(), productQty, productValue, totalPaid, 0.0);
+            } else {
+                existing.setQty(existing.getQty() + productQty);
+                existing.setDebit(existing.getDebit() + productValue);
+                existing.setCredit(existing.getCredit() + totalPaid);
+            }
+            categoryMap.put(dto.getCategory(), existing);
+        }
+
+        return new ArrayList<>(categoryMap.values());
     }
-
-    // Step 2: Compute debit/credit for current month
-    for (CategoryBalanceDTO dto : currentMonthData) {
-        double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
-        double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
-                + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
-
-        double debit = 0.0;
-        double credit = 0.0;
-
-        if (productValue < totalPaid) {
-            debit = totalPaid - productValue;
-        } else if (productValue > totalPaid) {
-            credit = productValue - totalPaid;
-        }
-
-        CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
-        if (existing == null) {
-            existing = new CategoryDebitCreditDTO(dto.getCategory(), debit, credit, 0.0);
-        } else {
-            existing.setDebit(existing.getDebit() + debit);
-            existing.setCredit(existing.getCredit() + credit);
-        }
-        categoryMap.put(dto.getCategory(), existing);
-    }
-
-    return new ArrayList<>(categoryMap.values());
-}
-
-public List<CategoryDebitCreditDTO> getDatewiseMarketRetailerWiseDebitCredit(String salesPerson, LocalDate startDate, LocalDate endDate) {
-    List<CategoryBalanceDTO> currentMonthData = retailerPaymentRepository.findDatewiseMarketingRetailerBalance(salesPerson, startDate, endDate);
-    List<CategoryBalanceDTO> openingData = retailerPaymentRepository.findMarketRetailerOpeningBalanceBeforeDate(salesPerson, startDate);
-
-    Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
-
-    // Step 1: Compute opening balances first
-    for (CategoryBalanceDTO dto : openingData) {
-        double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
-        double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
-                + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
-        double openingBalance = productValue - totalPaid;
-
-        CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
-        if (existing == null) {
-            existing = new CategoryDebitCreditDTO(dto.getCategory(), 0.0, 0.0, 0.0);
-        }
-        existing.setOpeningBalance(existing.getOpeningBalance() + openingBalance);
-        categoryMap.put(dto.getCategory(), existing);
-    }
-
-    // Step 2: Compute debit/credit for current month
-    for (CategoryBalanceDTO dto : currentMonthData) {
-        double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
-        double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
-                + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
-
-        double debit = 0.0;
-        double credit = 0.0;
-
-        if (productValue < totalPaid) {
-            debit = totalPaid - productValue;
-        } else if (productValue > totalPaid) {
-            credit = productValue - totalPaid;
-        }
-
-        CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
-        if (existing == null) {
-            existing = new CategoryDebitCreditDTO(dto.getCategory(), debit, credit, 0.0);
-        } else {
-            existing.setDebit(existing.getDebit() + debit);
-            existing.setCredit(existing.getCredit() + credit);
-        }
-        categoryMap.put(dto.getCategory(), existing);
-    }
-
-    return new ArrayList<>(categoryMap.values());
-}
-
-// datewise
-public List<CategoryDebitCreditDTO> getdatewiseCategoryWiseDebitCredit(LocalDate startDate, LocalDate endDate) {
-    List<CategoryBalanceDTO> currentMonthData = retailerPaymentRepository.findDatewiseCategoryBalance(startDate, endDate);
-    List<CategoryBalanceDTO> openingData = retailerPaymentRepository.findCategoryOpeningBalanceBeforeDate(startDate);
-
-    Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
-
-    // Step 1: Compute opening balances first
-    for (CategoryBalanceDTO dto : openingData) {
-        double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
-        double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
-                + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
-        double openingBalance = productValue - totalPaid;
-
-        CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
-        if (existing == null) {
-            existing = new CategoryDebitCreditDTO(dto.getCategory(), 0.0, 0.0, 0.0);
-        }
-        existing.setOpeningBalance(existing.getOpeningBalance() + openingBalance);
-        categoryMap.put(dto.getCategory(), existing);
-    }
-
-    // Step 2: Compute debit/credit for current month
-    for (CategoryBalanceDTO dto : currentMonthData) {
-        double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
-        double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
-                + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
-
-        double debit = 0.0;
-        double credit = 0.0;
-
-        if (productValue < totalPaid) {
-            debit = totalPaid - productValue;
-        } else if (productValue > totalPaid) {
-            credit = productValue - totalPaid;
-        }
-
-        CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
-        if (existing == null) {
-            existing = new CategoryDebitCreditDTO(dto.getCategory(), debit, credit, 0.0);
-        } else {
-            existing.setDebit(existing.getDebit() + debit);
-            existing.setCredit(existing.getCredit() + credit);
-        }
-        categoryMap.put(dto.getCategory(), existing);
-    }
-
-    return new ArrayList<>(categoryMap.values());
-}
-// public List<CategoryDebitCreditDTO> getdatewiseCategoryWiseDebitCredit(LocalDate startDate, LocalDate endDate) {
-//     List<CategoryBalanceDTO> rawData = retailerPaymentRepository.findCategoryRawBalanceDatewise(startDate, endDate);
-
-//     Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
-
-//     for (CategoryBalanceDTO dto : rawData) {
-//     double productValue = Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
-//     double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
-//             + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
-
-//     double debit = 0.0;
-//     double credit = 0.0;
-
-//     if (productValue < totalPaid) {
-//         debit = totalPaid - productValue;
-//     } else if (productValue > totalPaid) {
-//         credit = productValue - totalPaid;
-//     }
-
-//     CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
-//     if (existing == null) {
-//         existing = new CategoryDebitCreditDTO(dto.getCategory(), debit, credit, 0.0);
-//     } else {
-//         existing.setDebit(existing.getDebit() + debit);
-//         existing.setCredit(existing.getCredit() + credit);
-//     }
-//     categoryMap.put(dto.getCategory(), existing);
-// }
-
-
-//     return new ArrayList<>(categoryMap.values());
-// }
-
-
-//     public List<RetailerDetailsDTO> getDatewiseDetailsByRetailerAndUsername(String retailerName, String username) {
-//         ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
-
-//         if (lastClosingSetup != null) {
-//             LocalDate startDate = lastClosingSetup.getStartDate();
-//             LocalDate endDate = lastClosingSetup.getEndDate();
-
-//             List<RetailerDetailsDTO> productValue = Optional.ofNullable(productStockrepository.findProductDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate))
-//                     .orElse(Collections.emptyList());
-
-//             List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate))
-//                     .orElse(Collections.emptyList());
-
-//             List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate))
-//                     .orElse(Collections.emptyList());
-
-//             List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
-//             combinedDetails.addAll(productValue);
-//             combinedDetails.addAll(paymentValue);
-//             combinedDetails.addAll(commissionValue);
-
-//             combinedDetails.sort(
-//                     Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.reverseOrder())));
-
-//             return combinedDetails;
-//         }
-
-//         return Collections.emptyList();
-//     }
-
-
-// public Page<RetailerDetailsDTO> getDatewiseDetailsByRetailerAndUsername(
-//         String retailerName, String username, int page, int size) {
-
-//     ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
-
-//     if (lastClosingSetup != null) {
-//         LocalDate startDate = lastClosingSetup.getStartDate();
-//         LocalDate endDate = lastClosingSetup.getEndDate();
-
-//         List<RetailerDetailsDTO> productValue = Optional.ofNullable(
-//                 productStockrepository.findProductDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate)
-//         ).orElse(Collections.emptyList());
-
-//         List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
-//                 retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate)
-//         ).orElse(Collections.emptyList());
-
-//         List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
-//                 retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate)
-//         ).orElse(Collections.emptyList());
-
-//         List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
-//         combinedDetails.addAll(productValue);
-//         combinedDetails.addAll(paymentValue);
-//         combinedDetails.addAll(commissionValue);
-
-//         // 1️⃣ Sort ASC first (for correct running balance calculation)
-//         combinedDetails.sort(
-//                 Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder()))
-//         );
-
-//         // 2️⃣ Running balance calculation
-//         double balance = 0;
-//         for (RetailerDetailsDTO dto : combinedDetails) {
-//             double productVal = dto.getProductValue() != null ? dto.getProductValue() : 0;
-//             double paymentVal = dto.getPayment() != null ? dto.getPayment() : 0;
-//             double commissionVal = dto.getCommission() != null ? dto.getCommission() : 0;
-
-//             balance += productVal;
-//             balance -= paymentVal;
-//             balance -= commissionVal;
-
-//             dto.setBalance(balance);
-//         }
-
-//         // 3️⃣ Sort DESC for display
-//         Collections.reverse(combinedDetails);
-
-//         // 4️⃣ Manual pagination
-//         int start = Math.min(page * size, combinedDetails.size());
-//         int end = Math.min(start + size, combinedDetails.size());
-//         List<RetailerDetailsDTO> paginatedList = combinedDetails.subList(start, end);
-
-//         return new PageImpl<>(paginatedList, PageRequest.of(page, size), combinedDetails.size());
-//     }
-
-//     return Page.empty();
-// }
-
-
-
-//     public List<RetailerDetailsDTO> getDatewiseRetailerDetailsByRetailerAndUsername(
-//             String retailerName, String username, LocalDate startDate, LocalDate endDate) {
-
-//         List<RetailerDetailsDTO> productValue = Optional.ofNullable(
-//                 productStockrepository.findProductDetailsByUsernameAndRetailerName(username, retailerName, startDate,
-//                         endDate))
-//                 .orElse(Collections.emptyList());
-
-//         List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
-//                 retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerName(username, retailerName, startDate,
-//                         endDate))
-//                 .orElse(Collections.emptyList());
-
-//         List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
-//                 retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerName(username, retailerName,
-//                         startDate, endDate))
-//                 .orElse(Collections.emptyList());
-
-//         List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
-//         combinedDetails.addAll(productValue);
-//         combinedDetails.addAll(paymentValue);
-//         combinedDetails.addAll(commissionValue);
-
-//         combinedDetails.sort(
-//                 Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
-
-//         return combinedDetails;
-//     }
-
-// public Page<RetailerDetailsDTO> getDatewiseRetailerDetailsByRetailerAndUsername(
-//         String retailerName, String username, LocalDate startDate, LocalDate endDate, int page, int size) {
-
-//     List<RetailerDetailsDTO> productValue = Optional.ofNullable(
-//             productStockrepository.findProductDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate)
-//     ).orElse(Collections.emptyList());
-
-//     List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
-//             retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate)
-//     ).orElse(Collections.emptyList());
-
-//     List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
-//             retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerName(username, retailerName, startDate, endDate)
-//     ).orElse(Collections.emptyList());
-
-//     List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
-//     combinedDetails.addAll(productValue);
-//     combinedDetails.addAll(paymentValue);
-//     combinedDetails.addAll(commissionValue);
-
-//     // 1️⃣ Sort ASC first (for correct running balance calculation)
-//     combinedDetails.sort(
-//             Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder()))
-//     );
-
-//     // 2️⃣ Running balance calculation
-//     double balance = 0;
-//     for (RetailerDetailsDTO dto : combinedDetails) {
-//         double productVal = dto.getProductValue() != null ? dto.getProductValue() : 0;
-//         double paymentVal = dto.getPayment() != null ? dto.getPayment() : 0;
-//         double commissionVal = dto.getCommission() != null ? dto.getCommission() : 0;
-
-//         balance += productVal;
-//         balance -= paymentVal;
-//         balance -= commissionVal;
-
-//         dto.setBalance(balance);
-//     }
-
-//     // 3️⃣ Reverse to DESC (latest first)
-//     Collections.reverse(combinedDetails);
-
-//     // 4️⃣ Manual pagination
-//     int start = Math.min(page * size, combinedDetails.size());
-//     int end = Math.min(start + size, combinedDetails.size());
-//     List<RetailerDetailsDTO> paginatedList = combinedDetails.subList(start, end);
-
-//     return new PageImpl<>(paginatedList, PageRequest.of(page, size), combinedDetails.size());
-// }
-
+    // public List<CategoryDebitCreditDTO>
+    // getdatewiseCategoryWiseDebitCredit(LocalDate startDate, LocalDate endDate) {
+    // List<CategoryBalanceDTO> rawData =
+    // retailerPaymentRepository.findCategoryRawBalanceDatewise(startDate, endDate);
+
+    // Map<String, CategoryDebitCreditDTO> categoryMap = new HashMap<>();
+
+    // for (CategoryBalanceDTO dto : rawData) {
+    // double productValue =
+    // Optional.ofNullable(dto.getTotalProductValue()).orElse(0.0);
+    // double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
+    // + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
+
+    // double debit = 0.0;
+    // double credit = 0.0;
+
+    // if (productValue < totalPaid) {
+    // debit = totalPaid - productValue;
+    // } else if (productValue > totalPaid) {
+    // credit = productValue - totalPaid;
+    // }
+
+    // CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+    // if (existing == null) {
+    // existing = new CategoryDebitCreditDTO(dto.getCategory(), debit, credit, 0.0);
+    // } else {
+    // existing.setDebit(existing.getDebit() + debit);
+    // existing.setCredit(existing.getCredit() + credit);
+    // }
+    // categoryMap.put(dto.getCategory(), existing);
+    // }
+
+    // return new ArrayList<>(categoryMap.values());
+    // }
+
+    // public List<RetailerDetailsDTO>
+    // getDatewiseDetailsByRetailerAndUsername(String retailerName, String username)
+    // {
+    // ClosingSetup lastClosingSetup =
+    // closingSetupRepository.findLastClosingSetup();
+
+    // if (lastClosingSetup != null) {
+    // LocalDate startDate = lastClosingSetup.getStartDate();
+    // LocalDate endDate = lastClosingSetup.getEndDate();
+
+    // List<RetailerDetailsDTO> productValue =
+    // Optional.ofNullable(productStockrepository.findProductDetailsByUsernameAndRetailerName(username,
+    // retailerName, startDate, endDate))
+    // .orElse(Collections.emptyList());
+
+    // List<RetailerDetailsDTO> paymentValue =
+    // Optional.ofNullable(retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerName(username,
+    // retailerName, startDate, endDate))
+    // .orElse(Collections.emptyList());
+
+    // List<RetailerDetailsDTO> commissionValue =
+    // Optional.ofNullable(retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerName(username,
+    // retailerName, startDate, endDate))
+    // .orElse(Collections.emptyList());
+
+    // List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
+    // combinedDetails.addAll(productValue);
+    // combinedDetails.addAll(paymentValue);
+    // combinedDetails.addAll(commissionValue);
+
+    // combinedDetails.sort(
+    // Comparator.comparing(RetailerDetailsDTO::getDate,
+    // Comparator.nullsLast(Comparator.reverseOrder())));
+
+    // return combinedDetails;
+    // }
+
+    // return Collections.emptyList();
+    // }
+
+    // public Page<RetailerDetailsDTO> getDatewiseDetailsByRetailerAndUsername(
+    // String retailerName, String username, int page, int size) {
+
+    // ClosingSetup lastClosingSetup =
+    // closingSetupRepository.findLastClosingSetup();
+
+    // if (lastClosingSetup != null) {
+    // LocalDate startDate = lastClosingSetup.getStartDate();
+    // LocalDate endDate = lastClosingSetup.getEndDate();
+
+    // List<RetailerDetailsDTO> productValue = Optional.ofNullable(
+    // productStockrepository.findProductDetailsByUsernameAndRetailerName(username,
+    // retailerName, startDate, endDate)
+    // ).orElse(Collections.emptyList());
+
+    // List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
+    // retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerName(username,
+    // retailerName, startDate, endDate)
+    // ).orElse(Collections.emptyList());
+
+    // List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
+    // retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerName(username,
+    // retailerName, startDate, endDate)
+    // ).orElse(Collections.emptyList());
+
+    // List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
+    // combinedDetails.addAll(productValue);
+    // combinedDetails.addAll(paymentValue);
+    // combinedDetails.addAll(commissionValue);
+
+    // // 1️⃣ Sort ASC first (for correct running balance calculation)
+    // combinedDetails.sort(
+    // Comparator.comparing(RetailerDetailsDTO::getDate,
+    // Comparator.nullsLast(Comparator.naturalOrder()))
+    // );
+
+    // // 2️⃣ Running balance calculation
+    // double balance = 0;
+    // for (RetailerDetailsDTO dto : combinedDetails) {
+    // double productVal = dto.getProductValue() != null ? dto.getProductValue() :
+    // 0;
+    // double paymentVal = dto.getPayment() != null ? dto.getPayment() : 0;
+    // double commissionVal = dto.getCommission() != null ? dto.getCommission() : 0;
+
+    // balance += productVal;
+    // balance -= paymentVal;
+    // balance -= commissionVal;
+
+    // dto.setBalance(balance);
+    // }
+
+    // // 3️⃣ Sort DESC for display
+    // Collections.reverse(combinedDetails);
+
+    // // 4️⃣ Manual pagination
+    // int start = Math.min(page * size, combinedDetails.size());
+    // int end = Math.min(start + size, combinedDetails.size());
+    // List<RetailerDetailsDTO> paginatedList = combinedDetails.subList(start, end);
+
+    // return new PageImpl<>(paginatedList, PageRequest.of(page, size),
+    // combinedDetails.size());
+    // }
+
+    // return Page.empty();
+    // }
+
+    // public List<RetailerDetailsDTO>
+    // getDatewiseRetailerDetailsByRetailerAndUsername(
+    // String retailerName, String username, LocalDate startDate, LocalDate endDate)
+    // {
+
+    // List<RetailerDetailsDTO> productValue = Optional.ofNullable(
+    // productStockrepository.findProductDetailsByUsernameAndRetailerName(username,
+    // retailerName, startDate,
+    // endDate))
+    // .orElse(Collections.emptyList());
+
+    // List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
+    // retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerName(username,
+    // retailerName, startDate,
+    // endDate))
+    // .orElse(Collections.emptyList());
+
+    // List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
+    // retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerName(username,
+    // retailerName,
+    // startDate, endDate))
+    // .orElse(Collections.emptyList());
+
+    // List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
+    // combinedDetails.addAll(productValue);
+    // combinedDetails.addAll(paymentValue);
+    // combinedDetails.addAll(commissionValue);
+
+    // combinedDetails.sort(
+    // Comparator.comparing(RetailerDetailsDTO::getDate,
+    // Comparator.nullsLast(Comparator.naturalOrder())));
+
+    // return combinedDetails;
+    // }
+
+    // public Page<RetailerDetailsDTO>
+    // getDatewiseRetailerDetailsByRetailerAndUsername(
+    // String retailerName, String username, LocalDate startDate, LocalDate endDate,
+    // int page, int size) {
+
+    // List<RetailerDetailsDTO> productValue = Optional.ofNullable(
+    // productStockrepository.findProductDetailsByUsernameAndRetailerName(username,
+    // retailerName, startDate, endDate)
+    // ).orElse(Collections.emptyList());
+
+    // List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
+    // retailerPaymentRepository.findPaymentDetailsByUsernameAndRetailerName(username,
+    // retailerName, startDate, endDate)
+    // ).orElse(Collections.emptyList());
+
+    // List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
+    // retailerCommissionRepository.findCommissionDetailsByUsernameAndRetailerName(username,
+    // retailerName, startDate, endDate)
+    // ).orElse(Collections.emptyList());
+
+    // List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
+    // combinedDetails.addAll(productValue);
+    // combinedDetails.addAll(paymentValue);
+    // combinedDetails.addAll(commissionValue);
+
+    // // 1️⃣ Sort ASC first (for correct running balance calculation)
+    // combinedDetails.sort(
+    // Comparator.comparing(RetailerDetailsDTO::getDate,
+    // Comparator.nullsLast(Comparator.naturalOrder()))
+    // );
+
+    // // 2️⃣ Running balance calculation
+    // double balance = 0;
+    // for (RetailerDetailsDTO dto : combinedDetails) {
+    // double productVal = dto.getProductValue() != null ? dto.getProductValue() :
+    // 0;
+    // double paymentVal = dto.getPayment() != null ? dto.getPayment() : 0;
+    // double commissionVal = dto.getCommission() != null ? dto.getCommission() : 0;
+
+    // balance += productVal;
+    // balance -= paymentVal;
+    // balance -= commissionVal;
+
+    // dto.setBalance(balance);
+    // }
+
+    // // 3️⃣ Reverse to DESC (latest first)
+    // Collections.reverse(combinedDetails);
+
+    // // 4️⃣ Manual pagination
+    // int start = Math.min(page * size, combinedDetails.size());
+    // int end = Math.min(start + size, combinedDetails.size());
+    // List<RetailerDetailsDTO> paginatedList = combinedDetails.subList(start, end);
+
+    // return new PageImpl<>(paginatedList, PageRequest.of(page, size),
+    // combinedDetails.size());
+    // }
 
     public List<RetailerDetailsDTO> getDetailsByRetailerAndSalesPerson(
             String retailerName, String salesPerson) {

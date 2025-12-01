@@ -7,6 +7,7 @@ import lombok.Data;
 @AllArgsConstructor
 public class CategoryBalanceDTO {
     private String category;
+    private Double totalProductQty;
     private Double totalProductValue;
     private Double totalPayment;
     private Double totalCommission;

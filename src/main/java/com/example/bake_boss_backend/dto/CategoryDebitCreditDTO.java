@@ -7,6 +7,7 @@ import lombok.Data;
 @AllArgsConstructor
 public class CategoryDebitCreditDTO {
     private String category;
+    private Double qty;
     private Double debit;
     private Double credit;
     private double openingBalance;

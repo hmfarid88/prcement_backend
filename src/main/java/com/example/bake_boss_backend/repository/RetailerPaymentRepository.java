@@ -78,7 +78,8 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
 
     @Query("""
             SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
-                r.category,
+                r.category, 
+                COALESCE(SUM(ps.productQty), 0),
                 COALESCE(SUM(ps.productQty * ps.dpRate), 0),
                 (SELECT COALESCE(SUM(rp.amount), 0)
                     FROM RetailerPayment rp
@@ -104,7 +105,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     @Query("""
             SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
                 r.category,
-
+                COALESCE(SUM(ps.productQty), 0),
                 COALESCE(SUM(ps.productQty * ps.dpRate), 0),
 
                 (SELECT COALESCE(SUM(rp.amount), 0)
@@ -130,7 +131,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     @Query("""
                 SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
                     r.category,
-
+                    COALESCE(SUM(ps.productQty), 0),
                     COALESCE(SUM(ps.productQty * ps.dpRate), 0),
 
                     (SELECT COALESCE(SUM(rp.amount), 0)
@@ -156,6 +157,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     @Query("""
             SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
                 r.salesPerson,
+                COALESCE(SUM(ps.productQty), 0),
                 COALESCE(SUM(ps.productQty * ps.dpRate), 0),
                 (SELECT COALESCE(SUM(rp.amount), 0)
                     FROM RetailerPayment rp
@@ -181,7 +183,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     @Query("""
                 SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
                     r.salesPerson,
-
+                    COALESCE(SUM(ps.productQty), 0),
                     COALESCE(SUM(ps.productQty * ps.dpRate), 0),
 
                     (SELECT COALESCE(SUM(rp.amount), 0)
@@ -211,6 +213,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     @Query("""
             SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
                 r.retailerName,
+                COALESCE(SUM(ps.productQty), 0),
                 COALESCE(SUM(ps.productQty * ps.dpRate), 0),
                 (SELECT COALESCE(SUM(rp.amount), 0)
                     FROM RetailerPayment rp
@@ -236,6 +239,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     @Query("""
             SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
                 r.retailerName,
+                COALESCE(SUM(ps.productQty), 0),
                 COALESCE(SUM(ps.productQty * ps.dpRate), 0),
                 (SELECT COALESCE(SUM(rp.amount), 0)
                     FROM RetailerPayment rp
@@ -258,7 +262,8 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
 
     @Query("""
                 SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
-                    r.category,
+                    r.category, 
+                    COALESCE(SUM(ps.productQty), 0),
                     COALESCE(SUM(ps.productQty * ps.dpRate), 0),
                     (SELECT COALESCE(SUM(rp.amount), 0)
                         FROM RetailerPayment rp
@@ -288,6 +293,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     @Query("""
                 SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
                     r.salesPerson,
+                    COALESCE(SUM(ps.productQty), 0),
                     COALESCE(SUM(ps.productQty * ps.dpRate), 0),
                     (SELECT COALESCE(SUM(rp.amount), 0)
                         FROM RetailerPayment rp
@@ -317,6 +323,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     @Query("""
                 SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
                     r.salesPerson,
+                    COALESCE(SUM(ps.productQty), 0),
                     COALESCE(SUM(ps.productQty * ps.dpRate), 0),
                     (SELECT COALESCE(SUM(rp.amount), 0)
                      FROM RetailerPayment rp
@@ -343,6 +350,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     @Query("""
                 SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
                     r.retailerName,
+                    COALESCE(SUM(ps.productQty), 0),
                     COALESCE(SUM(ps.productQty * ps.dpRate), 0),
                     (SELECT COALESCE(SUM(rp.amount), 0)
                         FROM RetailerPayment rp
@@ -372,7 +380,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     @Query("""
     SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
         r.retailerName,
-
+        COALESCE(SUM(ps.productQty), 0),
         COALESCE(SUM(ps.productQty * ps.dpRate), 0),
 
         (SELECT COALESCE(SUM(rp.amount), 0)
@@ -403,6 +411,7 @@ List<CategoryBalanceDTO> findMarketRetailerOpeningBalanceBeforeDate(
     @Query("""
             SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
                 r.category,
+                COALESCE(SUM(ps.productQty), 0),
                 COALESCE(SUM(ps.productQty * ps.dpRate), 0),
                 (SELECT COALESCE(SUM(rp.amount), 0)
                     FROM RetailerPayment rp
