@@ -580,6 +580,11 @@ public class ProductController {
         return productStockrepository.findLatestProductStockForEachProductName(username);
     }
 
+    @GetMapping("/getDatewiseProductStock")
+    public List<ProductStock> getDatewiseLatestProductStockForEachProductName(String username, LocalDate date) {
+        return productStockrepository.findLatestProductStockForEachProductNameByDate(username, date);
+    }
+
     @GetMapping("/getSoldProduct")
     public List<ProductRetailerDTO> getSoldProduct(String username) {
         return productStockService.getProductDistForCurrentMonth(username);

@@ -23,6 +23,25 @@ public interface ProductStockrepository extends JpaRepository<ProductStock, Long
          "(SELECT MAX(ps2.productId) FROM ProductStock ps2 GROUP BY ps2.productName)")
    List<ProductStock> findLatestProductStockForEachProductName(@Param("username") String username);
 
+   @Query("""
+    SELECT ps 
+    FROM ProductStock ps
+    WHERE ps.username = :username 
+      AND ps.date = :date
+      AND ps.productId IN (
+          SELECT MAX(ps2.productId)
+          FROM ProductStock ps2
+          WHERE ps2.username = :username
+            AND ps2.date = :date
+          GROUP BY ps2.productName
+      )
+""")
+List<ProductStock> findLatestProductStockForEachProductNameByDate(
+        @Param("username") String username,
+        @Param("date") LocalDate date
+);
+
+
    Optional<ProductStock> findByProductId(Long productId);
 
    List<ProductStock> findByUsernameAndInvoiceNo(String username, String invoiceNo);
