@@ -78,6 +78,55 @@ List<ProductRetailerDTO> findProductWithRetailerDetails(
     @Param("month") int month,
     @Param("username") String username
 );
+@Query("""
+SELECT 
+    ps.warehouse,
+    ps.productName,
+    COALESCE((
+        SELECT SUM(p1.remainingQty)
+        FROM ProductStock p1
+        WHERE p1.username = :username
+          AND p1.warehouse = ps.warehouse
+          AND p1.productName = ps.productName
+          AND p1.date < :date
+    ), 0) AS previousQty,
+    COALESCE((
+        SELECT SUM(p2.productQty)
+        FROM ProductStock p2
+        WHERE p2.username = :username
+          AND p2.warehouse = ps.warehouse
+          AND p2.productName = ps.productName
+          AND p2.date = :date
+          AND p2.status = 'stored'
+    ), 0) AS todayEntryQty,
+    COALESCE((
+        SELECT SUM(p3.productQty)
+        FROM ProductStock p3
+        WHERE p3.username = :username
+          AND p3.warehouse = ps.warehouse
+          AND p3.productName = ps.productName
+          AND p3.date = :date
+          AND p3.status = 'sold'
+    ), 0) AS todaySaleQty,
+
+    COALESCE((
+        SELECT p4.costPrice
+        FROM ProductStock p4
+        WHERE p4.username = :username
+          AND p4.warehouse = ps.warehouse
+          AND p4.productName = ps.productName
+        ORDER BY p4.productId DESC
+        LIMIT 1
+    ), 0) AS costPrice
+
+FROM ProductStock ps
+WHERE ps.username = :username
+GROUP BY ps.warehouse, ps.productName
+""")
+List<Object[]> getWarehouseDailyStock(
+        @Param("username") String username,
+        @Param("date") LocalDate date
+);
 
 @Query("""
     SELECT new com.example.bake_boss_backend.dto.ProductRetailerDTO(

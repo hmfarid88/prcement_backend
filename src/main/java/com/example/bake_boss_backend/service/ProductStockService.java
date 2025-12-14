@@ -1,6 +1,7 @@
 package com.example.bake_boss_backend.service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.bake_boss_backend.dto.DailyWarehouseStockDTO;
 import com.example.bake_boss_backend.dto.ProductRetailerDTO;
 import com.example.bake_boss_backend.entity.ClosingSetup;
 import com.example.bake_boss_backend.entity.OrderInfo;
@@ -225,5 +227,37 @@ public ProductStock deleteProductEntry(Long productId){
     }
     throw new RuntimeException("Product with ID " + productId + " not found.");
 }
+
+public List<DailyWarehouseStockDTO> getWarehouseDailyReport(String username, LocalDate date) {
+
+        List<Object[]> rows = productStockRepository.getWarehouseDailyStock(username, date);
+        List<DailyWarehouseStockDTO> list = new ArrayList<>();
+
+        for (Object[] r : rows) {
+
+            String warehouse = (String) r[0];
+            String productName = (String) r[1];
+            Double previousQty = ((Number) r[2]).doubleValue();
+            Double todayEntryQty = ((Number) r[3]).doubleValue();
+            Double todaySaleQty = ((Number) r[4]).doubleValue();
+            Double costPrice = ((Number) r[5]).doubleValue();
+
+            Double presentQty = previousQty + todayEntryQty - todaySaleQty;
+            Double totalValue = presentQty * costPrice;
+
+            list.add(new DailyWarehouseStockDTO(
+                    warehouse,
+                    productName,
+                    previousQty,
+                    todayEntryQty,
+                    todaySaleQty,
+                    presentQty,
+                    costPrice,
+                    totalValue
+            ));
+        }
+
+        return list;
+    }
 
 }

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.bake_boss_backend.dto.DailyWarehouseStockDTO;
 import com.example.bake_boss_backend.dto.ProductRetailerDTO;
 import com.example.bake_boss_backend.entity.ClosingSetup;
 import com.example.bake_boss_backend.entity.EmployeeInfo;
@@ -578,6 +579,15 @@ public class ProductController {
     @GetMapping("/getProductStock")
     public List<ProductStock> getLatestProductStockForEachProductName(String username) {
         return productStockrepository.findLatestProductStockForEachProductName(username);
+    }
+
+    @GetMapping("/daily-stock-report")
+    public List<DailyWarehouseStockDTO> getDailyReport(
+            @RequestParam String username,
+            @RequestParam String date
+    ) {
+        LocalDate localDate = LocalDate.parse(date);
+        return productStockService.getWarehouseDailyReport(username, localDate);
     }
 
     @GetMapping("/getDatewiseProductStock")

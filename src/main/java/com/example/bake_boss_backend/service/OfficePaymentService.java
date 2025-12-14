@@ -63,7 +63,7 @@ public class OfficePaymentService {
         combinedPayments.addAll(transportPayments);
         return combinedPayments;
     }
-
+   
     public List<OfficePayment> getPaymentsForCurrentMonth(String username) {
         LocalDate now = LocalDate.now();
         int year = now.getYear();
