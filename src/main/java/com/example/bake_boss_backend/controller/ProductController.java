@@ -582,12 +582,9 @@ public class ProductController {
     }
 
     @GetMapping("/daily-stock-report")
-    public List<DailyWarehouseStockDTO> getDailyReport(
-            @RequestParam String username,
-            @RequestParam String date
+    public List<DailyWarehouseStockDTO> getDailyReport(@RequestParam String username, @RequestParam LocalDate date
     ) {
-        LocalDate localDate = LocalDate.parse(date);
-        return productStockService.getWarehouseDailyReport(username, localDate);
+      return productStockService.getWarehouseDailyReport(username, date);
     }
 
     @GetMapping("/getDatewiseProductStock")

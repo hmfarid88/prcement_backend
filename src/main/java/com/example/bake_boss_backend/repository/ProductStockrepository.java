@@ -78,55 +78,114 @@ List<ProductRetailerDTO> findProductWithRetailerDetails(
     @Param("month") int month,
     @Param("username") String username
 );
-@Query("""
+
+@Query(value = """
 SELECT 
     ps.warehouse,
-    ps.productName,
+    ps.product_name,
     COALESCE((
-        SELECT SUM(p1.remainingQty)
-        FROM ProductStock p1
+        SELECT SUM(p1.remaining_qty)
+        FROM product_stock p1
         WHERE p1.username = :username
           AND p1.warehouse = ps.warehouse
-          AND p1.productName = ps.productName
-          AND p1.date < :date
+          AND p1.product_name = ps.product_name
+          AND DATE(p1.date) < :date
     ), 0) AS previousQty,
+
     COALESCE((
-        SELECT SUM(p2.productQty)
-        FROM ProductStock p2
+        SELECT SUM(p2.product_qty)
+        FROM product_stock p2
         WHERE p2.username = :username
           AND p2.warehouse = ps.warehouse
-          AND p2.productName = ps.productName
-          AND p2.date = :date
+          AND p2.product_name = ps.product_name
+          AND DATE(p2.date) = :date
           AND p2.status = 'stored'
     ), 0) AS todayEntryQty,
+
     COALESCE((
-        SELECT SUM(p3.productQty)
-        FROM ProductStock p3
+        SELECT SUM(p3.product_qty)
+        FROM product_stock p3
         WHERE p3.username = :username
           AND p3.warehouse = ps.warehouse
-          AND p3.productName = ps.productName
-          AND p3.date = :date
+          AND p3.product_name = ps.product_name
+          AND DATE(p3.date) = :date
           AND p3.status = 'sold'
     ), 0) AS todaySaleQty,
 
     COALESCE((
-        SELECT p4.costPrice
-        FROM ProductStock p4
+        SELECT p4.cost_price
+        FROM product_stock p4
         WHERE p4.username = :username
           AND p4.warehouse = ps.warehouse
-          AND p4.productName = ps.productName
-        ORDER BY p4.productId DESC
+          AND p4.product_name = ps.product_name
+        ORDER BY p4.product_id DESC
         LIMIT 1
     ), 0) AS costPrice
 
-FROM ProductStock ps
+FROM product_stock ps
 WHERE ps.username = :username
-GROUP BY ps.warehouse, ps.productName
-""")
-List<Object[]> getWarehouseDailyStock(
-        @Param("username") String username,
-        @Param("date") LocalDate date
+GROUP BY ps.warehouse, ps.product_name
+""", nativeQuery = true)
+List<Object[]> getWarehouseDailyStock(@Param("username") String username, @Param("date") LocalDate date
 );
+
+
+// @Query("""
+// SELECT 
+//     ps.warehouse,
+//     ps.productName,
+//     COALESCE((
+//         SELECT SUM(p1.remainingQty)
+//         FROM ProductStock p1
+//         WHERE p1.username = :username
+//           AND p1.warehouse = ps.warehouse
+//           AND p1.productName = ps.productName
+//           AND p1.date < :date
+//     ), 0) AS previousQty,
+//     COALESCE((
+//         SELECT SUM(p2.productQty)
+//         FROM ProductStock p2
+//         WHERE p2.username = :username
+//           AND p2.warehouse = ps.warehouse
+//           AND p2.productName = ps.productName
+//           AND p2.date = :date
+//           AND p2.status = 'stored'
+//     ), 0) AS todayEntryQty,
+//     COALESCE((
+//         SELECT SUM(p3.productQty)
+//         FROM ProductStock p3
+//         WHERE p3.username = :username
+//           AND p3.warehouse = ps.warehouse
+//           AND p3.productName = ps.productName
+//           AND p3.date = :date
+//           AND p3.status = 'sold'
+//     ), 0) AS todaySaleQty,
+
+
+// COALESCE((
+//     SELECT p4.costPrice
+//     FROM ProductStock p4
+//     WHERE p4.username = :username
+//       AND p4.warehouse = ps.warehouse
+//       AND p4.productName = ps.productName
+//       AND p4.productId = (
+//           SELECT MAX(p5.productId)
+//           FROM ProductStock p5
+//           WHERE p5.username = :username
+//             AND p5.warehouse = ps.warehouse
+//             AND p5.productName = ps.productName
+//       )
+// ), 0) AS costPrice
+
+
+// FROM ProductStock ps
+// WHERE ps.username = :username
+// GROUP BY ps.warehouse, ps.productName
+// """)
+// List<Object[]> getWarehouseDailyStock(
+//         @Param("username") String username,
+//         @Param("date") LocalDate date
+// );
 
 @Query("""
     SELECT new com.example.bake_boss_backend.dto.ProductRetailerDTO(
