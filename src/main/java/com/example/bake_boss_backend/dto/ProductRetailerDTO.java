@@ -18,6 +18,7 @@ public class ProductRetailerDTO {
     private String transport;
     private String truckNo;
     private Double rent;
+    private Double costPrice;
     private Double dpRate;
     private Double productQty;
     private Long productId;
