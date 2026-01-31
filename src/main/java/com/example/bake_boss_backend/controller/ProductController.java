@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.bake_boss_backend.dto.DailyWarehouseStockDTO;
+import com.example.bake_boss_backend.dto.MonthlySaleDTO;
+import com.example.bake_boss_backend.dto.MonthlySrSaleDTO;
 import com.example.bake_boss_backend.dto.ProductRetailerDTO;
 import com.example.bake_boss_backend.entity.ClosingSetup;
 import com.example.bake_boss_backend.entity.EmployeeInfo;
@@ -151,7 +153,8 @@ public class ProductController {
 
     @PostMapping("/addExpenseName")
     public ResponseEntity<?> addExpense(@RequestBody ExpenseName expenseName) {
-        if (expenseNameRepository.existsByUsernameAndExpenseName(expenseName.getUsername(), expenseName.getExpenseName())) {
+        if (expenseNameRepository.existsByUsernameAndExpenseName(expenseName.getUsername(),
+                expenseName.getExpenseName())) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("Product " + expenseName.getExpenseName() + " is already exists!");
         }
@@ -307,7 +310,8 @@ public class ProductController {
             return ResponseEntity.status(400).body(errorResponse);
         }
     }
-   @DeleteMapping("/deleteProductSale/{productId}")
+
+    @DeleteMapping("/deleteProductSale/{productId}")
     public ResponseEntity<String> deleteProductSale(@PathVariable Long productId) {
         try {
             productStockService.deleteProductSale(productId);
@@ -316,6 +320,7 @@ public class ProductController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
+
     @PutMapping("/updateEntryInfo/{productId}")
     public ResponseEntity<?> updateEntryInfo(@PathVariable Long productId, @RequestBody ProductStock productstock) {
         try {
@@ -472,7 +477,6 @@ public class ProductController {
             Optional<ProductStock> latestProductStockOpt = productStockrepository
                     .findTopByProductNameAndUsernameOrderByProductIdDesc(newItem.getProductName(),
                             newItem.getUsername());
-
             if (latestProductStockOpt.isPresent()) {
                 ProductStock latestProductStock = latestProductStockOpt.get();
                 Double newTotalQty = latestProductStock.getRemainingQty() + newItem.getProductQty();
@@ -582,8 +586,8 @@ public class ProductController {
     }
 
     @GetMapping("/daily-stock-report")
-    public List<DailyWarehouseStockDTO> getDailyReport(@RequestParam String username, @RequestParam LocalDate date) {
-      return productStockService.getWarehouseDailyReport(username, date);
+    public List<DailyWarehouseStockDTO> getDailyReport(String username, LocalDate date) {
+        return productStockService.getWarehouseDailyReport(username, date);
     }
 
     @GetMapping("/getDatewiseProductStock")
@@ -676,4 +680,13 @@ public class ProductController {
         }
     }
 
+    @GetMapping("/datewise-sale-summary")
+    public List<MonthlySaleDTO> getDatewiseMonthlySale(String username, LocalDate startDate, LocalDate endDate) {
+        return productStockService.getDatewiseMonthlySale(username, startDate, endDate);
+    }
+
+    @GetMapping("/datewise-sr-sale-summary")
+    public List<MonthlySrSaleDTO> getDatewiseMonthlySRSale(String username, LocalDate startDate, LocalDate endDate) {
+        return productStockService.getDatewiseMonthlySrSale(username, startDate, endDate);
+    }
 }

@@ -39,8 +39,7 @@ public class SupplierPaymentService {
         return supplierCommissionRepository.findSupplierCommissionByMonth(year, month, username);
     }
 
-    public List<SupplierCommission> getDatewiseSupplierCommission(String username, LocalDate startDate,
-            LocalDate endDate) {
+    public List<SupplierCommission> getDatewiseSupplierCommission(String username, LocalDate startDate, LocalDate endDate) {
         return supplierCommissionRepository.findSupplierCommissionByDate(username, startDate, endDate);
     }
 

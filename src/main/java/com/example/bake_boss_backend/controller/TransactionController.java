@@ -152,6 +152,11 @@ public class TransactionController {
         return officePaymentService.getNetSumAmountBeforeToday(username, date);
     }
 
+    @GetMapping("/net-sum-today")
+    public NetSumAmountDto getNetSumAmountToday(@RequestParam String username) {
+        return officePaymentService.getNetSumAmountToday(username);
+    }
+
     @GetMapping("/payments/today")
     public List<PaymentDto> getPaymentsForToday(@RequestParam String username, LocalDate date) {
         return officePaymentService.getPaymentsForToday(username, date);

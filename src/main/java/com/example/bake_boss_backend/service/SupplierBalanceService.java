@@ -99,53 +99,161 @@ public class SupplierBalanceService {
                 .toList();
     }
 
-    public List<SupplierDetailsDTO> getDetailsBySupplierAndUsername(String username, String supplierName) {
-        List<SupplierDetailsDTO> productValue = Optional.ofNullable(
-                productStockRepository.findProductDetailsByUsernameAndSupplierName(username, supplierName))
-                .orElse(Collections.emptyList());
+//     public List<SupplierDetailsDTO> getDetailsBySupplierAndUsername(String username, String supplierName) {
+//         List<SupplierDetailsDTO> productValue = Optional.ofNullable(
+//                 productStockRepository.findProductDetailsByUsernameAndSupplierName(username, supplierName))
+//                 .orElse(Collections.emptyList());
 
-        List<SupplierDetailsDTO> paymentValue = Optional.ofNullable(
-                supplierPaymentRepository.findPaymentDetailsByUsernameAndSupplierName(username, supplierName))
-                .orElse(Collections.emptyList());
+//         List<SupplierDetailsDTO> paymentValue = Optional.ofNullable(
+//                 supplierPaymentRepository.findPaymentDetailsByUsernameAndSupplierName(username, supplierName))
+//                 .orElse(Collections.emptyList());
 
-        List<SupplierDetailsDTO> commissionValue = Optional.ofNullable(
-                supplierCommissionRepository.findCommissionDetailsByUsernameAndSupplierName(username, supplierName))
-                .orElse(Collections.emptyList());
+//         List<SupplierDetailsDTO> commissionValue = Optional.ofNullable(
+//                 supplierCommissionRepository.findCommissionDetailsByUsernameAndSupplierName(username, supplierName))
+//                 .orElse(Collections.emptyList());
 
-        List<SupplierDetailsDTO> combinedDetails = new ArrayList<>();
-        combinedDetails.addAll(productValue);
-        combinedDetails.addAll(paymentValue);
-        combinedDetails.addAll(commissionValue);
+//         List<SupplierDetailsDTO> combinedDetails = new ArrayList<>();
+//         combinedDetails.addAll(productValue);
+//         combinedDetails.addAll(paymentValue);
+//         combinedDetails.addAll(commissionValue);
 
-        combinedDetails.sort(
-                Comparator.comparing(SupplierDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
+//         combinedDetails.sort(
+//                 Comparator.comparing(SupplierDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
 
-        return combinedDetails;
-    }
+//         return combinedDetails;
+//     }
 
-    public List<SupplierDetailsDTO> getDatewiseDetailsBySupplierAndUsername(String username, String supplierName, LocalDate startDate, LocalDate endDate) {
-        List<SupplierDetailsDTO> productValue = Optional.ofNullable(
-                productStockRepository.findDatewiseProductDetailsByUsernameAndSupplierName(username, supplierName, startDate, endDate))
-                .orElse(Collections.emptyList());
+public List<SupplierDetailsDTO> getDetailsBySupplierAndUsername(
+        String username, String supplierName) {
 
-        List<SupplierDetailsDTO> paymentValue = Optional.ofNullable(
-                supplierPaymentRepository.findDatewisePaymentDetailsByUsernameAndSupplierName(username, supplierName, startDate, endDate))
-                .orElse(Collections.emptyList());
+    LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
 
-        List<SupplierDetailsDTO> commissionValue = Optional.ofNullable(
-                supplierCommissionRepository.findDatewiseCommissionDetailsByUsernameAndSupplierName(username, supplierName,startDate, endDate))
-                .orElse(Collections.emptyList());
+    Double productTotal = productStockRepository
+            .getTotalProductValueBeforeMonth(username, supplierName, startOfMonth);
 
-        List<SupplierDetailsDTO> combinedDetails = new ArrayList<>();
-        combinedDetails.addAll(productValue);
-        combinedDetails.addAll(paymentValue);
-        combinedDetails.addAll(commissionValue);
+    Double paymentTotal = supplierPaymentRepository
+            .getTotalPaymentBeforeMonth(username, supplierName, startOfMonth);
 
-        combinedDetails.sort(
-                Comparator.comparing(SupplierDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
+    Double commissionTotal = supplierCommissionRepository
+            .getTotalCommissionBeforeMonth(username, supplierName, startOfMonth);
 
-        return combinedDetails;
-    }
+    Double openingBalance = productTotal - paymentTotal - commissionTotal;
+
+    List<SupplierDetailsDTO> combinedDetails = new ArrayList<>();
+
+    // ✅ Add opening balance row FIRST
+    combinedDetails.add(
+            new SupplierDetailsDTO(
+                    startOfMonth,
+                    "OPENING BALANCE",
+                    0.0,
+                    openingBalance,
+                    0.0,
+                    0.0,
+                    "Opening Balance"
+            )
+    );
+
+    // Current month data (your existing logic)
+    combinedDetails.addAll(
+            Optional.ofNullable(
+                    productStockRepository
+                            .findProductDetailsByUsernameAndSupplierName(username, supplierName))
+                    .orElse(Collections.emptyList()));
+
+    combinedDetails.addAll(
+            Optional.ofNullable(
+                    supplierPaymentRepository
+                            .findPaymentDetailsByUsernameAndSupplierName(username, supplierName))
+                    .orElse(Collections.emptyList()));
+
+    combinedDetails.addAll(
+            Optional.ofNullable(
+                    supplierCommissionRepository
+                            .findCommissionDetailsByUsernameAndSupplierName(username, supplierName))
+                    .orElse(Collections.emptyList()));
+
+    combinedDetails.sort(
+            Comparator.comparing(
+                    SupplierDetailsDTO::getDate,
+                    Comparator.nullsLast(Comparator.naturalOrder()))
+    );
+
+    return combinedDetails;
+}
+
+
+    public List<SupplierDetailsDTO> getDatewiseDetailsBySupplierAndUsername(
+        String username,
+        String supplierName,
+        LocalDate startDate,
+        LocalDate endDate) {
+
+    // 1️⃣ Calculate opening balance (BEFORE startDate)
+    Double productTotal = productStockRepository
+            .getTotalProductValueBeforeMonth(username, supplierName, startDate);
+
+    Double paymentTotal = supplierPaymentRepository
+            .getTotalPaymentBeforeMonth(username, supplierName, startDate);
+
+    Double commissionTotal = supplierCommissionRepository
+            .getTotalCommissionBeforeMonth(username, supplierName, startDate);
+
+    Double openingBalance = productTotal - paymentTotal - commissionTotal;
+
+    // 2️⃣ Create combined list FIRST
+    List<SupplierDetailsDTO> combinedDetails = new ArrayList<>();
+
+    // 3️⃣ Add opening balance row
+    combinedDetails.add(
+            new SupplierDetailsDTO(
+                    startDate,
+                    "OPENING BALANCE",
+                    0.0,
+                    openingBalance,
+                    0.0,
+                    0.0,
+                    "Opening Balance"
+            )
+    );
+
+    // 4️⃣ Get datewise data
+    List<SupplierDetailsDTO> productValue =
+            Optional.ofNullable(
+                    productStockRepository
+                            .findDatewiseProductDetailsByUsernameAndSupplierName(
+                                    username, supplierName, startDate, endDate))
+                    .orElse(Collections.emptyList());
+
+    List<SupplierDetailsDTO> paymentValue =
+            Optional.ofNullable(
+                    supplierPaymentRepository
+                            .findDatewisePaymentDetailsByUsernameAndSupplierName(
+                                    username, supplierName, startDate, endDate))
+                    .orElse(Collections.emptyList());
+
+    List<SupplierDetailsDTO> commissionValue =
+            Optional.ofNullable(
+                    supplierCommissionRepository
+                            .findDatewiseCommissionDetailsByUsernameAndSupplierName(
+                                    username, supplierName, startDate, endDate))
+                    .orElse(Collections.emptyList());
+
+    // 5️⃣ Add all transactions
+    combinedDetails.addAll(productValue);
+    combinedDetails.addAll(paymentValue);
+    combinedDetails.addAll(commissionValue);
+
+    // 6️⃣ Sort by date
+    combinedDetails.sort(
+            Comparator.comparing(
+                    SupplierDetailsDTO::getDate,
+                    Comparator.nullsLast(Comparator.naturalOrder()))
+    );
+
+    return combinedDetails;
+}
+
 
     public List<TransportDetailsDTO> getDetailsByTransportAndUsername(String username, String transport) {
         List<TransportDetailsDTO> rentValue = Optional.ofNullable(
@@ -164,5 +272,15 @@ public class SupplierBalanceService {
                 Comparator.comparing(TransportDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
 
         return combinedDetails;
+    }
+
+    public Double getSupplierDue() {
+        Double totalSoldValue =
+                productStockRepository.getTotalStockValue();
+        Double totalPayment =
+                supplierPaymentRepository.getTotalSupplierPayment();
+        Double totalCommission =
+                supplierCommissionRepository.getTotalSupplierCommission();
+        return totalSoldValue - totalPayment - totalCommission;
     }
 }

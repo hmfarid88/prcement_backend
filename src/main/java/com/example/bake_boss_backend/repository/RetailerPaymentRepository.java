@@ -34,10 +34,30 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
             ") AS total_amount", nativeQuery = true)
     Double findNetSumAmountBeforeToday(@Param("username") String username, @Param("date") LocalDate date);
 
+    @Query(value = "SELECT ( " +
+            "  (SELECT COALESCE(SUM(amount), 0) FROM retailer_payment WHERE username = :username) + "
+            +
+            "  (SELECT COALESCE(SUM(amount), 0) FROM office_receive WHERE username = :username) "
+            +
+            ") - ( " +
+            "  (SELECT COALESCE(SUM(amount), 0) FROM expense WHERE username = :username) + "
+            +
+            "  (SELECT COALESCE(SUM(amount), 0) FROM office_payment WHERE username = :username) + "
+            +
+            "  (SELECT COALESCE(SUM(amount), 0) FROM supplier_payment WHERE username = :username) + "
+            +
+
+            "  (SELECT COALESCE(SUM(amount), 0) FROM transport_payment WHERE username = :username) + "
+            +
+            "  (SELECT COALESCE(SUM(amount), 0) FROM employee_payment WHERE username = :username) "
+            +
+            ") AS total_amount", nativeQuery = true)
+    Double findNetSumAmountToday(@Param("username") String username);
+
     @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(rp.date, rp.retailerName, rp.note, rp.amount) "
             +
             "FROM RetailerPayment rp " +
-            "WHERE rp.username = :username AND rp.date = :date")
+            "WHERE rp.username = :username AND rp.date = :date ORDER BY rp.retailerName")
     List<ReceiveDto> findRetailerPaymentsForToday(@Param("username") String username, @Param("date") LocalDate date);
 
     @Query("SELECT o FROM RetailerPayment o WHERE YEAR(o.date) = :year AND MONTH(o.date) = :month AND o.username = :username ORDER BY o.date")
@@ -98,7 +118,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
                 AND FUNCTION('YEAR', ps.date) = FUNCTION('YEAR', CURRENT_DATE)
                 AND FUNCTION('MONTH', ps.date) = FUNCTION('MONTH', CURRENT_DATE)
             WHERE r.status = 'Active'
-            GROUP BY r.category, r.retailerName order by r.category asc
+            GROUP BY r.category, r.retailerName ORDER BY r.category ASC 
             """)
     List<CategoryBalanceDTO> findCategoryRawBalanceForCurrentMonth();
 
@@ -486,7 +506,12 @@ List<CategoryBalanceDTO> findMarketRetailerOpeningBalanceBeforeDate(
             @Param("month") int month);
 
     @Query("SELECT SUM(rp.amount) FROM RetailerPayment rp WHERE rp.retailerName IN :retailerNames AND YEAR(rp.date) = :year AND MONTH(rp.date) = :month")
-    Double getPaymentValueForRetailers(@Param("retailerNames") List<String> retailerNames, @Param("year") int year,
-            @Param("month") int month);
+    Double getPaymentValueForRetailers(@Param("retailerNames") List<String> retailerNames, @Param("year") int year, @Param("month") int month);
+
+    @Query("""
+    SELECT COALESCE(SUM(r.amount), 0)
+    FROM RetailerPayment r
+    """)
+Double getTotalRetailerPayment();
 
 }

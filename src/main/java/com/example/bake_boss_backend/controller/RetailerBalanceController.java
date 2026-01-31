@@ -38,47 +38,50 @@ public class RetailerBalanceController {
     @Autowired
     private EmployeeInfoRepository employeeInfoRepository;
 
-     @Autowired
+    @Autowired
     private RetailerPaymentService retailerPaymentService;
 
     // @GetMapping("/retailerBalance")
     // public List<RetailerBalanceDTO> retailerBalance() {
-    //     return retailerBalanceService.retailerBalance();
+    // return retailerBalanceService.retailerBalance();
     // }
 
     @GetMapping("/categoryRetailerBalance")
-    public List<CategoryDebitCreditDTO> categoryBalance(){
+    public List<CategoryDebitCreditDTO> categoryBalance() {
         return retailerBalanceService.getCategoryWiseDebitCredit();
     }
 
     @GetMapping("/marketingRetailerBalance")
-    public List<CategoryDebitCreditDTO> marketingBalance(@RequestParam String category){
+    public List<CategoryDebitCreditDTO> marketingBalance(@RequestParam String category) {
         return retailerBalanceService.getMarketWiseDebitCredit(category);
     }
 
     @GetMapping("/datewiseMarketingRetailerBalance")
-    public List<CategoryDebitCreditDTO> datewisemarketingBalance(@RequestParam String category, LocalDate startDate, LocalDate endDate){
+    public List<CategoryDebitCreditDTO> datewisemarketingBalance(@RequestParam String category, LocalDate startDate,
+            LocalDate endDate) {
         return retailerBalanceService.getDatewiseMarketWiseDebitCredit(category, startDate, endDate);
     }
 
     @GetMapping("/marketwiseRetailerBalance")
-    public List<CategoryDebitCreditDTO> retailerBalance(@RequestParam String salesPerson){
+    public List<CategoryDebitCreditDTO> retailerBalance(@RequestParam String salesPerson) {
         return retailerBalanceService.getMarketRetailerWiseDebitCredit(salesPerson);
     }
 
     @GetMapping("/datewiseMarketRetailerBalance")
-    public List<CategoryDebitCreditDTO> datewiseRetailerBalance(@RequestParam String salesPerson, LocalDate startDate, LocalDate endDate){
+    public List<CategoryDebitCreditDTO> datewiseRetailerBalance(@RequestParam String salesPerson, LocalDate startDate,
+            LocalDate endDate) {
         return retailerBalanceService.getDatewiseMarketRetailerWiseDebitCredit(salesPerson, startDate, endDate);
     }
 
     @GetMapping("/datewiseCategoryRetailerBalance")
-    public List<CategoryDebitCreditDTO> datewisecategoryBalance(LocalDate startDate, LocalDate endDate){
+    public List<CategoryDebitCreditDTO> datewisecategoryBalance(LocalDate startDate, LocalDate endDate) {
         return retailerBalanceService.getdatewiseCategoryWiseDebitCredit(startDate, endDate);
     }
-    
+
     // @GetMapping("/datewiseRetailerBalance")
-    // public List<RetailerBalanceDTO> datewiseRetailerBalance(LocalDate startDate, LocalDate endDate) {
-    //     return retailerBalanceService.datewiseRetailerBalance(startDate, endDate);
+    // public List<RetailerBalanceDTO> datewiseRetailerBalance(LocalDate startDate,
+    // LocalDate endDate) {
+    // return retailerBalanceService.datewiseRetailerBalance(startDate, endDate);
     // }
 
     @GetMapping("/salesRetailerBalance")
@@ -87,38 +90,52 @@ public class RetailerBalanceController {
     }
 
     @GetMapping("/salesDatewiseRetailerBalance")
-    public List<RetailerBalanceDTO> salesDatewiseRetailerBalance(String salesPerson, LocalDate startDate, LocalDate endDate) {
+    public List<RetailerBalanceDTO> salesDatewiseRetailerBalance(String salesPerson, LocalDate startDate,
+            LocalDate endDate) {
         return retailerBalanceService.salesDatewiseRetailerBalance(salesPerson, startDate, endDate);
     }
 
     @GetMapping("/retailer-details-currentmonth")
-    public List<RetailerDetailsDTO> getDetailsByRetailerAndUsernameCurrentmonth(@RequestParam String retailerName, @RequestParam String username) {
+    public List<RetailerDetailsDTO> getDetailsByRetailerAndUsernameCurrentmonth(@RequestParam String retailerName,
+            @RequestParam String username) {
         return retailerBalanceService.retailerDetailsForCurrentMonth(retailerName, username);
     }
 
     @GetMapping("/retailer-details-datetodate")
-    public List<RetailerDetailsDTO> getDetailsByRetailerAndUsernameDatetodate(@RequestParam String username, @RequestParam String retailerName, @RequestParam LocalDate startDate, @RequestParam LocalDate endDate) {
+    public List<RetailerDetailsDTO> getDetailsByRetailerAndUsernameDatetodate(@RequestParam String username,
+            @RequestParam String retailerName, @RequestParam LocalDate startDate, @RequestParam LocalDate endDate) {
         return retailerBalanceService.retailerDetailsDatetodate(username, retailerName, startDate, endDate);
     }
 
     // @GetMapping("/retailer-details")
-    // public List<RetailerDetailsDTO> getDetailsByRetailerAndUsername(@RequestParam String retailerName, @RequestParam String username) {
-    //     return retailerBalanceService.getDatewiseDetailsByRetailerAndUsername(retailerName, username);
+    // public List<RetailerDetailsDTO> getDetailsByRetailerAndUsername(@RequestParam
+    // String retailerName, @RequestParam String username) {
+    // return
+    // retailerBalanceService.getDatewiseDetailsByRetailerAndUsername(retailerName,
+    // username);
     // }
 
-//     @GetMapping("/retailer-details")
-//     public Page<RetailerDetailsDTO> getDetailsByRetailerAndUsername(
-//         @RequestParam String retailerName,
-//         @RequestParam String username,
-//         @RequestParam(defaultValue = "0") int page,
-//         @RequestParam(defaultValue = "20") int size) {
+    // @GetMapping("/retailer-details")
+    // public Page<RetailerDetailsDTO> getDetailsByRetailerAndUsername(
+    // @RequestParam String retailerName,
+    // @RequestParam String username,
+    // @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "20") int size) {
 
-//     return retailerBalanceService.getDatewiseDetailsByRetailerAndUsername(retailerName, username, page, size);
-// }
+    // return
+    // retailerBalanceService.getDatewiseDetailsByRetailerAndUsername(retailerName,
+    // username, page, size);
+    // }
 
     // @GetMapping("/datewise-retailer-details")
-    // public Page<RetailerDetailsDTO> getDatewiseDetailsByRetailerAndUsername(@RequestParam String retailerName, @RequestParam String username, @RequestParam LocalDate startDate, @RequestParam LocalDate endDate, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
-    //     return retailerBalanceService.getDatewiseRetailerDetailsByRetailerAndUsername(retailerName, username, startDate, endDate, page, size);
+    // public Page<RetailerDetailsDTO>
+    // getDatewiseDetailsByRetailerAndUsername(@RequestParam String retailerName,
+    // @RequestParam String username, @RequestParam LocalDate startDate,
+    // @RequestParam LocalDate endDate, @RequestParam(defaultValue = "0") int page,
+    // @RequestParam(defaultValue = "20") int size) {
+    // return
+    // retailerBalanceService.getDatewiseRetailerDetailsByRetailerAndUsername(retailerName,
+    // username, startDate, endDate, page, size);
     // }
 
     @GetMapping("/sales-retailer-details")
@@ -145,12 +162,12 @@ public class RetailerBalanceController {
         return employeeInfoRepository.findAllByOrderByEmployeeNameAsc();
     }
 
-     @GetMapping("/getRetailerPayment")
+    @GetMapping("/getRetailerPayment")
     public RetailerPayment getRetailerPayment(Long id) {
         return retailerPaymentService.getRetailerPaymentById(id);
     }
 
-     @PutMapping("/updateRetailerPayInfo/{id}")
+    @PutMapping("/updateRetailerPayInfo/{id}")
     public ResponseEntity<?> updateProductInfo(@PathVariable Long id, @RequestBody RetailerPayment retailerPayment) {
         try {
             RetailerPayment updatedpPayment = retailerPaymentService.updateRetailerPayInfo(id, retailerPayment);
@@ -161,4 +178,11 @@ public class RetailerBalanceController {
             return ResponseEntity.status(400).body(errorResponse);
         }
     }
+
+    @GetMapping("/retailerDue")
+    public ResponseEntity<Double> getRetailerDue() {
+        Double due = retailerBalanceService.getRetailerDue();
+        return ResponseEntity.ok(due);
+    }
+
 }

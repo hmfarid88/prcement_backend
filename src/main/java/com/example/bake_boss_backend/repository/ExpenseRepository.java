@@ -13,7 +13,7 @@ import com.example.bake_boss_backend.entity.Expense;
 public interface ExpenseRepository extends JpaRepository<Expense, Long>{
 
      @Query("SELECT new com.example.bake_boss_backend.dto.PaymentDto(e.date, e.expenseName, e.expenseNote, e.amount) "
-            + "FROM Expense e WHERE e.username = :username AND e.date = :date")
+            + "FROM Expense e WHERE e.username = :username AND e.date = :date ORDER BY e.expenseName")
     List<PaymentDto> findExpenseForToday(@Param("username") String username, @Param("date") LocalDate date);
 
     @Query("SELECT e FROM Expense e WHERE MONTH(e.date) = :month AND YEAR(e.date) = :year AND e.username = :username ORDER BY e.date")
@@ -21,4 +21,21 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>{
 
     @Query("SELECT e FROM Expense e WHERE e.username = :username AND  e.date BETWEEN :startDate AND :endDate  ORDER BY e.date")
     List<Expense> findDatewiseExpense(String username, LocalDate startDate, LocalDate endDate);
+
+    @Query("""
+        SELECT COALESCE(SUM(e.amount), 0)
+        FROM Expense e
+        WHERE e.username = :username
+        AND YEAR(e.date) = YEAR(CURRENT_DATE)
+        AND MONTH(e.date) = MONTH(CURRENT_DATE)
+    """)
+    Double getMonthlyTotalExpense(String username);
+
+    @Query("""
+        SELECT COALESCE(SUM(e.amount), 0)
+        FROM Expense e
+        WHERE e.username = :username
+          AND e.date BETWEEN :from AND :to
+    """)
+    Double getTotalExpense(String username, LocalDate from, LocalDate to);
 }

@@ -17,6 +17,7 @@ import com.example.bake_boss_backend.repository.EmployeePaymentRepository;
 import com.example.bake_boss_backend.repository.ExpenseRepository;
 import com.example.bake_boss_backend.repository.OfficePaymentRepository;
 import com.example.bake_boss_backend.repository.OfficeReceiveRepository;
+import com.example.bake_boss_backend.repository.ProductStockrepository;
 import com.example.bake_boss_backend.repository.RetailerPaymentRepository;
 import com.example.bake_boss_backend.repository.SupplierPaymentRepository;
 import com.example.bake_boss_backend.repository.TransportPaymentRepository;
@@ -44,8 +45,16 @@ public class OfficePaymentService {
     @Autowired
     private TransportPaymentRepository transportPaymentRepository;
 
+    @Autowired
+    private ProductStockrepository productStockRepository;
+
     public NetSumAmountDto getNetSumAmountBeforeToday(String username, LocalDate date) {
         Double netSumAmount = retailerPaymentRepository.findNetSumAmountBeforeToday(username, date);
+        return new NetSumAmountDto(netSumAmount);
+    }
+
+    public NetSumAmountDto getNetSumAmountToday(String username) {
+        Double netSumAmount = retailerPaymentRepository.findNetSumAmountToday(username);
         return new NetSumAmountDto(netSumAmount);
     }
 
@@ -63,7 +72,7 @@ public class OfficePaymentService {
         combinedPayments.addAll(transportPayments);
         return combinedPayments;
     }
-   
+
     public List<OfficePayment> getPaymentsForCurrentMonth(String username) {
         LocalDate now = LocalDate.now();
         int year = now.getYear();
@@ -103,6 +112,7 @@ public class OfficePaymentService {
             throw new RuntimeException("Payment not found with ID: " + id);
         }
     }
+
     public OfficeReceive updateReceiveInfo(Long id, OfficeReceive updatedExpenseInfo) {
         Optional<OfficeReceive> existingExpenseOpt = officeReceiveRepository.findById(id);
 
@@ -119,6 +129,7 @@ public class OfficePaymentService {
             throw new RuntimeException("Payment not found with ID: " + id);
         }
     }
+
     public EmployeePayment updateEmployeePaymentInfo(Long id, EmployeePayment updatedExpenseInfo) {
         Optional<EmployeePayment> existingExpenseOpt = employeePaymentRepository.findById(id);
 
@@ -138,4 +149,15 @@ public class OfficePaymentService {
         }
     }
 
+    public Double getOpeningCashTotal() {
+        return officeReceiveRepository.findTotalOpeningAmount();
+    }
+
+    public Double getOpeningCapitalTotal() {
+        return officeReceiveRepository.findTotalOpeningCapital();
+    }
+
+    public Double getOpeningStockTotal() {
+        return productStockRepository.findTotalOpeningStock();
+    }
 }

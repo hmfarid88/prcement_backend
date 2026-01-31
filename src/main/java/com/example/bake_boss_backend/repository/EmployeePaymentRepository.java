@@ -18,7 +18,7 @@ public interface EmployeePaymentRepository extends JpaRepository<EmployeePayment
     List<EmployeePayment> findDatewiseEmployeePayment(String username, LocalDate startDate, LocalDate endDate);
 
     @Query("SELECT new com.example.bake_boss_backend.dto.PaymentDto(s.date, s.employeeName, s.note, s.amount) "
-      + "FROM EmployeePayment s WHERE s.username = :username AND s.date = :date")
+      + "FROM EmployeePayment s WHERE s.username = :username AND s.date = :date ORDER BY s.employeeName")
   List<PaymentDto> findEmployeePaymentsForToday(@Param("username") String username, @Param("date") LocalDate date);
 
     @Query("SELECT SUM(e.amount) " +
@@ -30,4 +30,21 @@ public interface EmployeePaymentRepository extends JpaRepository<EmployeePayment
     Double findSumOfAmountByEmployeeNameYearMonthAndUsername(@Param("username") String username, @Param("employeeName") String employeeName, @Param("year") int year, @Param("month") int month);
 
     List<EmployeePayment> findByEmployeeName(String oldEmployeeName);
+
+    @Query("""
+        SELECT COALESCE(SUM(ep.amount), 0)
+        FROM EmployeePayment ep
+        WHERE ep.username = :username
+        AND YEAR(ep.date) = YEAR(CURRENT_DATE)
+        AND MONTH(ep.date) = MONTH(CURRENT_DATE)
+    """)
+    Double getMonthlyTotalEmployeePayment(String username);
+
+    @Query("""
+        SELECT COALESCE(SUM(ep.amount), 0)
+        FROM EmployeePayment ep
+        WHERE ep.username = :username
+          AND ep.date BETWEEN :from AND :to
+    """)
+    Double getTotalEmployeePayment(String username, LocalDate from, LocalDate to);
 }

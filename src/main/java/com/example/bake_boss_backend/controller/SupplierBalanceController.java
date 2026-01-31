@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -45,5 +46,11 @@ public class SupplierBalanceController {
     @GetMapping("/transport-details")
     public List<TransportDetailsDTO> getDatewiseDetailsByTransportAndUsername(@RequestParam String username, @RequestParam String transport){
         return supplierBalanceService.getDetailsByTransportAndUsername(username, transport);
+    }
+
+     @GetMapping("/supplierDue")
+    public ResponseEntity<Double> getSupplierDue() {
+        Double due = supplierBalanceService.getSupplierDue();
+        return ResponseEntity.ok(due);
     }
 }

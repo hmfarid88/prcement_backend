@@ -13,7 +13,7 @@ import com.example.bake_boss_backend.entity.OfficeReceive;
 
 public interface OfficeReceiveRepository extends JpaRepository<OfficeReceive, Long>{
     @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(r.date, r.receiveName, r.receiveNote, r.amount) " +
-    "FROM OfficeReceive r WHERE r.username=:username AND r.date = :date")
+    "FROM OfficeReceive r WHERE r.username=:username AND r.date = :date ORDER BY r.receiveName")
   List<ReceiveDto> findOfficeReceivesForToday(@Param("username") String username, @Param("date") LocalDate date);
 
  @Query("SELECT o FROM OfficeReceive o WHERE YEAR(o.date) = :year AND MONTH(o.date) = :month AND o.username = :username ORDER BY o.date")
@@ -24,6 +24,13 @@ public interface OfficeReceiveRepository extends JpaRepository<OfficeReceive, Lo
 
     @Query("SELECT r.receiveName, SUM(r.amount) FROM OfficeReceive r GROUP BY r.receiveName")
     List<Object[]> findTotalReceiveAmountGroupedByReceiveName();
+
+    @Query("SELECT COALESCE(SUM(r.amount), 0) FROM OfficeReceive r WHERE r.receiveName = 'opening cash'")
+    Double findTotalOpeningAmount();
+
+
+    @Query("SELECT COALESCE(SUM(r.amount), 0) FROM OfficeReceive r WHERE r.receiveName = 'opening capital'")
+    Double findTotalOpeningCapital();
 
     @Query("SELECT new com.example.bake_boss_backend.dto.DetailsPayReceiveDTO(p.date, p.receiveNote, 0.0, p.amount) FROM OfficeReceive p where p.username= :username AND p.receiveName= :receiveName ORDER BY p.date ASC")
     List<DetailsPayReceiveDTO> findDetailsReceiveByReceiveNameAndUsername(@Param("username") String username, @Param("receiveName") String name);

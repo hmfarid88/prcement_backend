@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.bake_boss_backend.dto.DailyWarehouseStockDTO;
+import com.example.bake_boss_backend.dto.MonthlySaleDTO;
+import com.example.bake_boss_backend.dto.MonthlySrSaleDTO;
 import com.example.bake_boss_backend.dto.ProductRetailerDTO;
 import com.example.bake_boss_backend.entity.ClosingSetup;
 import com.example.bake_boss_backend.entity.OrderInfo;
@@ -60,6 +62,14 @@ public class ProductStockService {
 
     public List<ProductStock> getDatewiseProductStock(String username, LocalDate startDate, LocalDate endDate) {
         return productStockRepository.findDatewiseProductByUsername(username, startDate, endDate);
+    }
+
+    public List<MonthlySaleDTO> getDatewiseMonthlySale(String username, LocalDate startDate, LocalDate endDate) {
+        return productStockRepository.findMonthlySaleSummary(username, startDate, endDate);
+    }
+
+    public List<MonthlySrSaleDTO> getDatewiseMonthlySrSale(String username, LocalDate startDate, LocalDate endDate) {
+        return productStockRepository.findMonthlySrSaleSummary(username, startDate, endDate);
     }
 
     public List<Object[]> getExistingOrder() {

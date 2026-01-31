@@ -26,6 +26,6 @@ public interface TransportPaymentRepository extends JpaRepository<TransportPayme
   List<TransportPayment> findPaymentsByDate(String username, LocalDate startDate, LocalDate endDate);
 
    @Query("SELECT new com.example.bake_boss_backend.dto.PaymentDto(s.date, s.transport, s.note, s.amount) "
-      + "FROM TransportPayment s WHERE s.username = :username AND s.date = :date")
+      + "FROM TransportPayment s WHERE s.username = :username AND s.date = :date ORDER BY s.transport")
   List<PaymentDto> findTransportPaymentsForToday(@Param("username") String username, @Param("date") LocalDate date);
 }

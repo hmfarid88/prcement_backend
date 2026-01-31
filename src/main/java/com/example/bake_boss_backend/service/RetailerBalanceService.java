@@ -351,16 +351,7 @@ public class RetailerBalanceService {
             double totalPaid = Optional.ofNullable(dto.getTotalPayment()).orElse(0.0)
                     + Optional.ofNullable(dto.getTotalCommission()).orElse(0.0);
 
-            // double debit = 0.0;
-            // double credit = 0.0;
-
-            // if (productValue < totalPaid) {
-            // debit = totalPaid - productValue;
-            // } else if (productValue > totalPaid) {
-            // credit = productValue - totalPaid;
-            // }
-
-            CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
+                        CategoryDebitCreditDTO existing = categoryMap.get(dto.getCategory());
             if (existing == null) {
                 existing = new CategoryDebitCreditDTO(dto.getCategory(), productQty, productValue, totalPaid, 0.0);
             } else {
@@ -371,7 +362,11 @@ public class RetailerBalanceService {
             categoryMap.put(dto.getCategory(), existing);
         }
 
-        return new ArrayList<>(categoryMap.values());
+        // return new ArrayList<>(categoryMap.values());
+        return categoryMap.values().stream()
+        .sorted(Comparator.comparing(CategoryDebitCreditDTO::getCategory))
+        .toList();
+
     }
 
     public List<CategoryDebitCreditDTO> getMarketWiseDebitCredit(String category) {
@@ -639,7 +634,11 @@ public class RetailerBalanceService {
             categoryMap.put(dto.getCategory(), existing);
         }
 
-        return new ArrayList<>(categoryMap.values());
+        // return new ArrayList<>(categoryMap.values());
+        return categoryMap.values().stream()
+        .sorted(Comparator.comparing(CategoryDebitCreditDTO::getCategory))
+        .toList();
+
     }
     // public List<CategoryDebitCreditDTO>
     // getdatewiseCategoryWiseDebitCredit(LocalDate startDate, LocalDate endDate) {
@@ -1031,5 +1030,17 @@ public class RetailerBalanceService {
             throw new RuntimeException("Employee not found with ID: " + id);
         }
     }
+ public Double getRetailerDue() {
 
+        Double totalSoldValue =
+                productStockrepository.getTotalSoldValueByRetailer();
+
+        Double totalPayment =
+                retailerPaymentRepository.getTotalRetailerPayment();
+
+        Double totalCommission =
+                retailerCommissionRepository.getTotalRetailerCommission();
+
+        return totalSoldValue - totalPayment - totalCommission;
+    }
 }

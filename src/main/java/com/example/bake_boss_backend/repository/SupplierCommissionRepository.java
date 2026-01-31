@@ -11,19 +11,55 @@ import com.example.bake_boss_backend.entity.SupplierCommission;
 
 public interface SupplierCommissionRepository extends JpaRepository<SupplierCommission, Long> {
 
-     @Query("SELECT o FROM SupplierCommission o WHERE YEAR(o.date) = :year AND MONTH(o.date) = :month AND o.username = :username ORDER BY o.date")
-  List<SupplierCommission> findSupplierCommissionByMonth(@Param("year") int year, @Param("month") int month, @Param("username") String username);
+    @Query("SELECT o FROM SupplierCommission o WHERE YEAR(o.date) = :year AND MONTH(o.date) = :month AND o.username = :username ORDER BY o.date ASC, o.supplierName ASC")
+    List<SupplierCommission> findSupplierCommissionByMonth(@Param("year") int year, @Param("month") int month, @Param("username") String username);
 
-  @Query("SELECT o FROM SupplierCommission o WHERE o.username = :username AND  o.date BETWEEN :startDate AND :endDate ORDER BY o.date")
-  List<SupplierCommission> findSupplierCommissionByDate(String username, LocalDate startDate, LocalDate endDate);
+    @Query("SELECT o FROM SupplierCommission o WHERE o.username = :username AND  o.date BETWEEN :startDate AND :endDate ORDER BY o.date ASC, o.supplierName ASC")
+    List<SupplierCommission> findSupplierCommissionByDate(String username, LocalDate startDate, LocalDate endDate);
 
-  @Query("SELECT sp.supplierName, SUM(sp.amount) " +
-      "FROM SupplierCommission sp WHERE sp.username = :username GROUP BY sp.supplierName")
-  List<Object[]> findTotalCommissionGroupedBySupplierAndUsername(String username);
+    @Query("SELECT sp.supplierName, SUM(sp.amount) " +
+            "FROM SupplierCommission sp WHERE sp.username = :username GROUP BY sp.supplierName")
+    List<Object[]> findTotalCommissionGroupedBySupplierAndUsername(String username);
 
-   @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(rp.date, 'No', 0.0, 0.0, 0.0, rp.amount, rp.note) FROM SupplierCommission rp WHERE rp.username = :username AND  rp.supplierName = :supplierName AND FUNCTION('YEAR', rp.date) = FUNCTION('YEAR', CURRENT_DATE) AND FUNCTION('MONTH', rp.date) = FUNCTION('MONTH', CURRENT_DATE)")
-       List<SupplierDetailsDTO> findCommissionDetailsByUsernameAndSupplierName(String username, String supplierName);
+    @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(rp.date, rp.note, 0.0, 0.0, 0.0, rp.amount, 'No') FROM SupplierCommission rp WHERE rp.username = :username AND  rp.supplierName = :supplierName AND FUNCTION('YEAR', rp.date) = FUNCTION('YEAR', CURRENT_DATE) AND FUNCTION('MONTH', rp.date) = FUNCTION('MONTH', CURRENT_DATE)")
+    List<SupplierDetailsDTO> findCommissionDetailsByUsernameAndSupplierName(String username, String supplierName);
 
-   @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(rp.date, 'No', 0.0, 0.0, 0.0, rp.amount, rp.note) FROM SupplierCommission rp WHERE rp.username = :username AND  rp.supplierName = :supplierName AND rp.date BETWEEN :startDate AND :endDate")
-       List<SupplierDetailsDTO> findDatewiseCommissionDetailsByUsernameAndSupplierName(String username, String supplierName, LocalDate startDate, LocalDate endDate);
+    @Query("SELECT new com.example.bake_boss_backend.dto.SupplierDetailsDTO(rp.date, rp.note, 0.0, 0.0, 0.0, rp.amount, 'No') FROM SupplierCommission rp WHERE rp.username = :username AND  rp.supplierName = :supplierName AND rp.date BETWEEN :startDate AND :endDate")
+    List<SupplierDetailsDTO> findDatewiseCommissionDetailsByUsernameAndSupplierName(String username,
+            String supplierName, LocalDate startDate, LocalDate endDate);
+
+    @Query("""
+                SELECT COALESCE(SUM(sc.amount), 0)
+                FROM SupplierCommission sc
+                WHERE sc.username = :username
+                  AND YEAR(sc.date) = YEAR(CURRENT_DATE)
+                AND MONTH(sc.date) = MONTH(CURRENT_DATE)
+            """)
+    Double getMonthlyTotalSupplierCommission(String username);
+
+    @Query("""
+                SELECT COALESCE(SUM(sc.amount), 0)
+                FROM SupplierCommission sc
+                WHERE sc.username = :username
+                  AND sc.date BETWEEN :from AND :to
+            """)
+    Double getTotalSupplierCommission(String username, LocalDate from, LocalDate to);
+
+    @Query("""
+            SELECT COALESCE(SUM(sc.amount), 0)
+            FROM SupplierCommission sc
+            WHERE sc.username = :username
+            AND sc.supplierName = :supplierName
+            AND sc.date < :startOfMonth
+            """)
+    Double getTotalCommissionBeforeMonth(
+            String username,
+            String supplierName,
+            LocalDate startOfMonth);
+ 
+            @Query("""
+    SELECT COALESCE(SUM(r.amount), 0)
+    FROM SupplierCommission r
+   """)
+Double getTotalSupplierCommission();
 }
