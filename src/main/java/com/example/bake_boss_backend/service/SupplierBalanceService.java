@@ -36,13 +36,11 @@ public class SupplierBalanceService {
     private TransportPaymentRepository transportPaymentRepository;
 
     public List<SupplierBalanceDTO> calculateSuppliersBalanceByUsername(String username) {
-        List<Object[]> materialCosts = productStockRepository
-                .findTotalProductCostGroupedBySupplierAndUsername(username);
+        List<Object[]> materialCosts = productStockRepository.findTotalProductCostGroupedBySupplierAndUsername(username);
 
         List<Object[]> payments = supplierPaymentRepository.findTotalPaymentGroupedBySupplierAndUsername(username);
 
-        List<Object[]> commission = supplierCommissionRepository
-                .findTotalCommissionGroupedBySupplierAndUsername(username);
+        List<Object[]> commission = supplierCommissionRepository.findTotalCommissionGroupedBySupplierAndUsername(username);
 
         Map<String, Double> balanceMap = new HashMap<>();
 
@@ -66,10 +64,15 @@ public class SupplierBalanceService {
             balanceMap.put(supplierName, balanceMap.getOrDefault(supplierName, 0.0) - totalCommission);
         }
 
-        // Convert the map to a list of DTOs
+        // // Convert the map to a list of DTOs
+        // return balanceMap.entrySet().stream()
+        //         .map(entry -> new SupplierBalanceDTO(entry.getKey(), entry.getValue()))
+        //         .toList();
         return balanceMap.entrySet().stream()
-                .map(entry -> new SupplierBalanceDTO(entry.getKey(), entry.getValue()))
-                .toList();
+        .sorted(Map.Entry.comparingByKey()) // supplierName ASC
+        .map(entry -> new SupplierBalanceDTO(entry.getKey(), entry.getValue()))
+        .toList();
+
     }
 
     public List<TransportBalanceDTO> calculateTransportBalanceByUsername(String username) {

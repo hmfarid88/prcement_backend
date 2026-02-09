@@ -18,7 +18,7 @@ public interface EmployeePaymentRepository extends JpaRepository<EmployeePayment
     List<EmployeePayment> findDatewiseEmployeePayment(String username, LocalDate startDate, LocalDate endDate);
 
     @Query("SELECT new com.example.bake_boss_backend.dto.PaymentDto(s.date, s.employeeName, s.note, s.amount) "
-      + "FROM EmployeePayment s WHERE s.username = :username AND s.date = :date ORDER BY s.employeeName")
+      + "FROM EmployeePayment s WHERE s.username = :username AND s.date = :date")
   List<PaymentDto> findEmployeePaymentsForToday(@Param("username") String username, @Param("date") LocalDate date);
 
     @Query("SELECT SUM(e.amount) " +

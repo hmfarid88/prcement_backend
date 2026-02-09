@@ -13,7 +13,7 @@ import com.example.bake_boss_backend.entity.OfficeReceive;
 
 public interface OfficeReceiveRepository extends JpaRepository<OfficeReceive, Long>{
     @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(r.date, r.receiveName, r.receiveNote, r.amount) " +
-    "FROM OfficeReceive r WHERE r.username=:username AND r.date = :date ORDER BY r.receiveName")
+    "FROM OfficeReceive r WHERE r.username=:username AND r.date = :date")
   List<ReceiveDto> findOfficeReceivesForToday(@Param("username") String username, @Param("date") LocalDate date);
 
  @Query("SELECT o FROM OfficeReceive o WHERE YEAR(o.date) = :year AND MONTH(o.date) = :month AND o.username = :username ORDER BY o.date")

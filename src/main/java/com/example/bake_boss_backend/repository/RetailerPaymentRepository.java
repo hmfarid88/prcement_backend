@@ -57,7 +57,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(rp.date, rp.retailerName, rp.note, rp.amount) "
             +
             "FROM RetailerPayment rp " +
-            "WHERE rp.username = :username AND rp.date = :date ORDER BY rp.retailerName")
+            "WHERE rp.username = :username AND rp.date = :date")
     List<ReceiveDto> findRetailerPaymentsForToday(@Param("username") String username, @Param("date") LocalDate date);
 
     @Query("SELECT o FROM RetailerPayment o WHERE YEAR(o.date) = :year AND MONTH(o.date) = :month AND o.username = :username ORDER BY o.date")

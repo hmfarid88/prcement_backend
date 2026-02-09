@@ -13,7 +13,7 @@ import com.example.bake_boss_backend.entity.Expense;
 public interface ExpenseRepository extends JpaRepository<Expense, Long>{
 
      @Query("SELECT new com.example.bake_boss_backend.dto.PaymentDto(e.date, e.expenseName, e.expenseNote, e.amount) "
-            + "FROM Expense e WHERE e.username = :username AND e.date = :date ORDER BY e.expenseName")
+            + "FROM Expense e WHERE e.username = :username AND e.date = :date")
     List<PaymentDto> findExpenseForToday(@Param("username") String username, @Param("date") LocalDate date);
 
     @Query("SELECT e FROM Expense e WHERE MONTH(e.date) = :month AND YEAR(e.date) = :year AND e.username = :username ORDER BY e.date")
