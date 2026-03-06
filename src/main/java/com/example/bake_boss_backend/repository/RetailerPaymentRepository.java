@@ -15,7 +15,7 @@ import com.example.bake_boss_backend.entity.RetailerPayment;
 
 public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment, Long> {
     @Query(value = "SELECT ( " +
-            "  (SELECT COALESCE(SUM(amount), 0) FROM retailer_payment WHERE username = :username AND DATE(date) < :date) + "
+            "  (SELECT COALESCE(SUM(amount), 0) FROM retailer_payment WHERE username = :username AND note !='opening' AND DATE(date) < :date) + "
             +
             "  (SELECT COALESCE(SUM(amount), 0) FROM office_receive WHERE username = :username AND DATE(date) < :date) "
             +
@@ -24,7 +24,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
             +
             "  (SELECT COALESCE(SUM(amount), 0) FROM office_payment WHERE username = :username AND DATE(date) < :date) + "
             +
-            "  (SELECT COALESCE(SUM(amount), 0) FROM supplier_payment WHERE username = :username AND DATE(date) < :date) + "
+            "  (SELECT COALESCE(SUM(amount), 0) FROM supplier_payment WHERE username = :username AND note !='opening' AND DATE(date) < :date) + "
             +
 
             "  (SELECT COALESCE(SUM(amount), 0) FROM transport_payment WHERE username = :username AND DATE(date) < :date) + "
@@ -35,7 +35,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     Double findNetSumAmountBeforeToday(@Param("username") String username, @Param("date") LocalDate date);
 
     @Query(value = "SELECT ( " +
-            "  (SELECT COALESCE(SUM(amount), 0) FROM retailer_payment WHERE username = :username) + "
+            "  (SELECT COALESCE(SUM(amount), 0) FROM retailer_payment WHERE note !='opening' AND username = :username) + "
             +
             "  (SELECT COALESCE(SUM(amount), 0) FROM office_receive WHERE username = :username) "
             +
@@ -44,7 +44,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
             +
             "  (SELECT COALESCE(SUM(amount), 0) FROM office_payment WHERE username = :username) + "
             +
-            "  (SELECT COALESCE(SUM(amount), 0) FROM supplier_payment WHERE username = :username) + "
+            "  (SELECT COALESCE(SUM(amount), 0) FROM supplier_payment WHERE note !='opening' AND username = :username) + "
             +
 
             "  (SELECT COALESCE(SUM(amount), 0) FROM transport_payment WHERE username = :username) + "
@@ -57,7 +57,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(rp.date, rp.retailerName, rp.note, rp.amount) "
             +
             "FROM RetailerPayment rp " +
-            "WHERE rp.username = :username AND rp.date = :date")
+            "WHERE rp.username = :username AND rp.note !='opening' AND rp.date = :date")
     List<ReceiveDto> findRetailerPaymentsForToday(@Param("username") String username, @Param("date") LocalDate date);
 
     @Query("SELECT o FROM RetailerPayment o WHERE YEAR(o.date) = :year AND MONTH(o.date) = :month AND o.username = :username ORDER BY o.date")
@@ -65,8 +65,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
             @Param("username") String username);
 
     @Query("SELECT ps FROM RetailerPayment ps WHERE  ps.username=:username AND ps.date BETWEEN :startDate AND :endDate ORDER BY ps.date")
-    List<RetailerPayment> findDatewiseRetailerPaymentByUsername(String username, LocalDate startDate,
-            LocalDate endDate);
+    List<RetailerPayment> findDatewiseRetailerPaymentByUsername(String username, LocalDate startDate, LocalDate endDate);
 
     @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(rp.date, rp.note, 'No', 0.0, 0.0, 0.0, rp.amount, 0.0, 0.0) FROM RetailerPayment rp WHERE rp.username = :username AND  rp.retailerName = :retailerName AND (YEAR(rp.date) < :year OR (YEAR(rp.date) = :year AND MONTH(rp.date) < :month))")
     List<RetailerDetailsDTO> findPaymentDetailsByUsernameAndRetailerNameBeforemonth(String username,
@@ -454,27 +453,24 @@ List<CategoryBalanceDTO> findMarketRetailerOpeningBalanceBeforeDate(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
 
-    // @Query("SELECT new com.example.bake_boss_backend.dto.RetailerBalanceDTO(" +
-    // "r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson, " +
-    // "COALESCE(SUM(ps.productQty), 0) as totalProductQty, " +
-    // "COALESCE(SUM(ps.productQty * ps.dpRate), 0) as totalProductValue, " +
-    // "(SELECT COALESCE(SUM(rp.amount), 0) FROM RetailerPayment rp " +
-    // " WHERE rp.retailerName = r.retailerName AND rp.date BETWEEN :startDate AND
-    // :endDate) as totalPayment, "
-    // +
-    // "(SELECT COALESCE(SUM(rc.amount), 0) FROM RetailerCommission rc " +
-    // " WHERE rc.retailerName = r.retailerName AND rc.date BETWEEN :startDate AND
-    // :endDate) as totalCommission) "
-    // +
-    // "FROM RetailerInfo r " +
-    // "LEFT JOIN ProductStock ps ON ps.customer = r.retailerName " +
-    // "AND ps.date BETWEEN :startDate AND :endDate " +
-    // "WHERE r.status = 'Active' " +
-    // "GROUP BY r.category, r.areaName, r.retailerName, r.retailerCode,
-    // r.salesPerson ORDER BY r.retailerName")
-    // List<RetailerBalanceDTO> findRetailerBalanceBetweenDates(
-    // @Param("startDate") LocalDate startDate,
-    // @Param("endDate") LocalDate endDate);
+    @Query("SELECT new com.example.bake_boss_backend.dto.RetailerBalanceDTO(" +
+    "r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson, " +
+    "COALESCE(SUM(ps.productQty), 0) as totalProductQty, " +
+    "COALESCE(SUM(ps.productQty * ps.dpRate), 0) as totalProductValue, " +
+    "(SELECT COALESCE(SUM(rp.amount), 0) FROM RetailerPayment rp " +
+    " WHERE rp.retailerName = r.retailerName AND rp.date BETWEEN :startDate AND :endDate) as totalPayment, "
+    +
+    "(SELECT COALESCE(SUM(rc.amount), 0) FROM RetailerCommission rc " +
+    " WHERE rc.retailerName = r.retailerName AND rc.date BETWEEN :startDate AND :endDate) as totalCommission) "
+    +
+    "FROM RetailerInfo r " +
+    "LEFT JOIN ProductStock ps ON ps.customer = r.retailerName " +
+    "AND ps.date BETWEEN :startDate AND :endDate " +
+    "WHERE r.status = 'Active' " +
+    "GROUP BY r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson ORDER BY r.category")
+    List<RetailerBalanceDTO> findRetailerBalanceBetweenDates(
+    @Param("startDate") LocalDate startDate,
+    @Param("endDate") LocalDate endDate);
 
     // sales
     @Query("SELECT new com.example.bake_boss_backend.dto.RetailerBalanceDTO(" +

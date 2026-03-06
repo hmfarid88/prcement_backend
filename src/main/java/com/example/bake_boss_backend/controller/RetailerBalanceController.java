@@ -41,10 +41,10 @@ public class RetailerBalanceController {
     @Autowired
     private RetailerPaymentService retailerPaymentService;
 
-    // @GetMapping("/retailerBalance")
-    // public List<RetailerBalanceDTO> retailerBalance() {
-    // return retailerBalanceService.retailerBalance();
-    // }
+    @GetMapping("/retailerBalance")
+    public List<RetailerBalanceDTO> retailerBalance() {
+    return retailerBalanceService.retailerBalance();
+    }
 
     @GetMapping("/categoryRetailerBalance")
     public List<CategoryDebitCreditDTO> categoryBalance() {
@@ -78,11 +78,10 @@ public class RetailerBalanceController {
         return retailerBalanceService.getdatewiseCategoryWiseDebitCredit(startDate, endDate);
     }
 
-    // @GetMapping("/datewiseRetailerBalance")
-    // public List<RetailerBalanceDTO> datewiseRetailerBalance(LocalDate startDate,
-    // LocalDate endDate) {
-    // return retailerBalanceService.datewiseRetailerBalance(startDate, endDate);
-    // }
+    @GetMapping("/datewiseRetailerBalance")
+    public List<RetailerBalanceDTO> datewiseRetailerBalance(LocalDate startDate, LocalDate endDate) {
+    return retailerBalanceService.datewiseRetailerBalance(startDate, endDate);
+    }
 
     @GetMapping("/salesRetailerBalance")
     public List<RetailerBalanceDTO> salesRetailerBalance(@RequestParam String salesPerson) {

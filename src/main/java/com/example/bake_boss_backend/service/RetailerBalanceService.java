@@ -71,15 +71,65 @@ public class RetailerBalanceService {
     // endDate);
     // }
     // return List.of();
-
     // }
 
-    // public List<RetailerBalanceDTO> datewiseRetailerBalance(LocalDate startDate,
-    // LocalDate endDate) {
-    // return retailerPaymentRepository.findRetailerBalanceBetweenDates(startDate,
-    // endDate);
+    public List<RetailerBalanceDTO> retailerBalance() {
+        ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
 
-    // }
+        if (lastClosingSetup != null) {
+            LocalDate startDate = lastClosingSetup.getStartDate();
+            LocalDate endDate = lastClosingSetup.getEndDate();
+
+            List<RetailerBalanceDTO> list = retailerPaymentRepository.findRetailerBalanceBetweenDates(startDate,
+                    endDate);
+
+            for (RetailerBalanceDTO dto : list) {
+
+                double productValue = dto.getTotalProductValue() != null ? dto.getTotalProductValue() : 0;
+                double payment = dto.getTotalPayment() != null ? dto.getTotalPayment() : 0;
+                double commission = dto.getTotalCommission() != null ? dto.getTotalCommission() : 0;
+
+                double balance = productValue - (payment + commission);
+
+                if (balance > 0) {
+                    dto.setCredit(balance);
+                    dto.setDebit(0.0);
+                } else {
+                    dto.setDebit(Math.abs(balance));
+                    dto.setCredit(0.0);
+                }
+            }
+
+            return list;
+        }
+
+        return List.of();
+    }
+
+   public List<RetailerBalanceDTO> datewiseRetailerBalance(LocalDate startDate, LocalDate endDate) {
+
+    List<RetailerBalanceDTO> list = retailerPaymentRepository
+            .findRetailerBalanceBetweenDates(startDate, endDate);
+
+    for (RetailerBalanceDTO dto : list) {
+
+        double productValue = dto.getTotalProductValue() != null ? dto.getTotalProductValue() : 0;
+        double payment = dto.getTotalPayment() != null ? dto.getTotalPayment() : 0;
+        double commission = dto.getTotalCommission() != null ? dto.getTotalCommission() : 0;
+
+        double balance = productValue - (payment + commission);
+
+        if (balance > 0) {
+            dto.setCredit(balance);
+            dto.setDebit(0.0);
+        } else {
+            dto.setDebit(Math.abs(balance));
+            dto.setCredit(0.0);
+        }
+    }
+
+    return list;
+}
 
     public List<RetailerBalanceDTO> salesRetailerBalance(String salesPerson) {
         ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
@@ -638,12 +688,10 @@ public class RetailerBalanceService {
 
         // return new ArrayList<>(categoryMap.values());
         return categoryMap.values().stream()
-        .sorted(Comparator.comparing(
-        CategoryDebitCreditDTO::getCategory,
-        Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER)
-    ))
-    .toList();
-
+                .sorted(Comparator.comparing(
+                        CategoryDebitCreditDTO::getCategory,
+                        Comparator.nullsFirst(String.CASE_INSENSITIVE_ORDER)))
+                .toList();
 
     }
     // public List<CategoryDebitCreditDTO>
