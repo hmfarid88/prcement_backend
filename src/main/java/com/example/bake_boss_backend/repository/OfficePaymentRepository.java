@@ -44,6 +44,6 @@ List<DetailsPayReceiveDTO> findDetailsPaymentByPaymentNameAndUsername(
 List<DetailsPayReceiveDTO> findDatewiseDetailsPaymentByPaymentNameAndUsername(
         @Param("username") String username,
         @Param("paymentName") String name,
-        @Param("endDate") LocalDate startDate,
-        @Param("startDate") LocalDate endDate);
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate);
 }
