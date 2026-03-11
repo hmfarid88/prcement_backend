@@ -1,5 +1,6 @@
 package com.example.bake_boss_backend.service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -58,18 +59,81 @@ public class FinanceService {
     }
 
     
-    public List<DetailsPayReceiveDTO> detailsPayReceive(String username, String name) {
-        List<DetailsPayReceiveDTO> payments = officePaymentRepository.findDetailsPaymentByPaymentNameAndUsername(username, name);
-        List<DetailsPayReceiveDTO> receives = officeReceiveRepository.findDetailsReceiveByReceiveNameAndUsername(username, name);
+    // public List<DetailsPayReceiveDTO> detailsPayReceive(String username, String name) {
+    //     List<DetailsPayReceiveDTO> payments = officePaymentRepository.findDetailsPaymentByPaymentNameAndUsername(username, name);
+    //     List<DetailsPayReceiveDTO> receives = officeReceiveRepository.findDetailsReceiveByReceiveNameAndUsername(username, name);
         
-        List<DetailsPayReceiveDTO> combinedPayments = new ArrayList<>();
-        combinedPayments.addAll(payments);
-        combinedPayments.addAll(receives);
+    //     List<DetailsPayReceiveDTO> combinedPayments = new ArrayList<>();
+    //     combinedPayments.addAll(payments);
+    //     combinedPayments.addAll(receives);
         
-        // Sort the combined list by date
-        combinedPayments.sort(Comparator.comparing(DetailsPayReceiveDTO::getDate));
+    //     // Sort the combined list by date
+    //     combinedPayments.sort(Comparator.comparing(DetailsPayReceiveDTO::getDate));
         
-        return combinedPayments;
-    }
+    //     return combinedPayments;
+    // }
     
+    public List<DetailsPayReceiveDTO> detailsPayReceive(String username, String name) {
+
+    LocalDate firstDayOfMonth = LocalDate.now().withDayOfMonth(1);
+
+    // previous balance
+    Double prevPayment = officePaymentRepository.findPreviousPayment(username, name, firstDayOfMonth);
+    Double prevReceive = officeReceiveRepository.findPreviousReceive(username, name, firstDayOfMonth);
+
+    double openingBalance = prevReceive - prevPayment;
+
+    List<DetailsPayReceiveDTO> result = new ArrayList<>();
+
+    // Opening Balance Row
+    result.add(new DetailsPayReceiveDTO(firstDayOfMonth, "Opening Balance", 
+            openingBalance < 0 ? Math.abs(openingBalance) : 0.0,
+            openingBalance > 0 ? openingBalance : 0.0));
+
+    // Current month data
+    List<DetailsPayReceiveDTO> payments =
+            officePaymentRepository.findDetailsPaymentByPaymentNameAndUsername(username, name, firstDayOfMonth);
+
+    List<DetailsPayReceiveDTO> receives =
+            officeReceiveRepository.findDetailsReceiveByReceiveNameAndUsername(username, name, firstDayOfMonth);
+
+    result.addAll(payments);
+    result.addAll(receives);
+
+    // Sort by date
+    result.sort(Comparator.comparing(DetailsPayReceiveDTO::getDate));
+
+    return result;
+}
+
+    public List<DetailsPayReceiveDTO> datewiseDetailsPayReceive(String username, String name, LocalDate startDate, LocalDate endDate) {
+
+    // previous balance
+    Double prevPayment = officePaymentRepository.findPreviousPayment(username, name, startDate);
+    Double prevReceive = officeReceiveRepository.findPreviousReceive(username, name, startDate);
+
+    double openingBalance = prevReceive - prevPayment;
+
+    List<DetailsPayReceiveDTO> result = new ArrayList<>();
+
+    // Opening Balance Row
+    result.add(new DetailsPayReceiveDTO(startDate, "Opening Balance", 
+            openingBalance < 0 ? Math.abs(openingBalance) : 0.0,
+            openingBalance > 0 ? openingBalance : 0.0));
+
+    // Current month data
+    List<DetailsPayReceiveDTO> payments =
+            officePaymentRepository.findDatewiseDetailsPaymentByPaymentNameAndUsername(username, name, startDate, endDate);
+
+    List<DetailsPayReceiveDTO> receives =
+            officeReceiveRepository.findDatewiseDetailsReceiveByReceiveNameAndUsername(username, name, startDate, endDate);
+
+    result.addAll(payments);
+    result.addAll(receives);
+
+    // Sort by date
+    result.sort(Comparator.comparing(DetailsPayReceiveDTO::getDate));
+
+    return result;
+}
 }

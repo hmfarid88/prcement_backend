@@ -34,4 +34,20 @@ public interface OfficeReceiveRepository extends JpaRepository<OfficeReceive, Lo
 
     @Query("SELECT new com.example.bake_boss_backend.dto.DetailsPayReceiveDTO(p.date, p.receiveNote, 0.0, p.amount) FROM OfficeReceive p where p.username= :username AND p.receiveName= :receiveName ORDER BY p.date ASC")
     List<DetailsPayReceiveDTO> findDetailsReceiveByReceiveNameAndUsername(@Param("username") String username, @Param("receiveName") String name);
-}
+
+    @Query("SELECT COALESCE(SUM(r.amount),0) FROM OfficeReceive r WHERE r.username=:username AND r.receiveName=:name AND r.date < :startDate")
+    Double findPreviousReceive(@Param("username") String username, @Param("name") String name, @Param("startDate") LocalDate startDate);
+
+@Query("SELECT new com.example.bake_boss_backend.dto.DetailsPayReceiveDTO(p.date, p.receiveNote, 0.0, p.amount) FROM OfficeReceive p WHERE p.username=:username AND p.receiveName=:receiveName AND p.date >= :startDate ORDER BY p.date ASC")
+List<DetailsPayReceiveDTO> findDetailsReceiveByReceiveNameAndUsername(
+        @Param("username") String username,
+        @Param("receiveName") String name,
+        @Param("startDate") LocalDate startDate);
+
+@Query("SELECT new com.example.bake_boss_backend.dto.DetailsPayReceiveDTO(p.date, p.receiveNote, 0.0, p.amount) FROM OfficeReceive p WHERE p.username=:username AND p.receiveName=:receiveName AND p.date between :startDate AND :endDate ORDER BY p.date ASC")
+List<DetailsPayReceiveDTO> findDatewiseDetailsReceiveByReceiveNameAndUsername(
+        @Param("username") String username,
+        @Param("receiveName") String name,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate);
+   }

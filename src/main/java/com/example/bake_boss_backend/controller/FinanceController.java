@@ -39,6 +39,11 @@ public class FinanceController {
         return financeService.detailsPayReceive(username, name);
     }
 
+    @GetMapping("/datewise-balance-details")
+    public List<DetailsPayReceiveDTO> getDatewiseBalanceDetails(@RequestParam String username, String name, LocalDate startDate, LocalDate endDate) {
+        return financeService.datewiseDetailsPayReceive(username, name, startDate, endDate);
+    }
+
     @GetMapping("/monthly-profit")
     public ProfitReportDTO monthlyProfitReport(@RequestParam String username) {
         return profitService.getMonthlyProfitReport(username);

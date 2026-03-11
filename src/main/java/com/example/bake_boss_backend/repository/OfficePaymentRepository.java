@@ -28,6 +28,22 @@ public interface OfficePaymentRepository extends JpaRepository<OfficePayment, Lo
     @Query("SELECT new com.example.bake_boss_backend.dto.DetailsPayReceiveDTO(p.date, p.paymentNote, p.amount, 0.0) FROM OfficePayment p where p.username= :username AND p.paymentName= :paymentName ORDER BY p.date ASC")
     List<DetailsPayReceiveDTO> findDetailsPaymentByPaymentNameAndUsername(@Param("username") String username, @Param("paymentName") String name);
    
+@Query("SELECT COALESCE(SUM(p.amount),0) FROM OfficePayment p WHERE p.username=:username AND p.paymentName=:name AND p.date < :startDate")
+Double findPreviousPayment(@Param("username") String username,
+                           @Param("name") String name,
+                           @Param("startDate") LocalDate startDate);
 
 
+@Query("SELECT new com.example.bake_boss_backend.dto.DetailsPayReceiveDTO(p.date, p.paymentNote, p.amount, 0.0) FROM OfficePayment p WHERE p.username=:username AND p.paymentName=:paymentName AND p.date >= :startDate ORDER BY p.date ASC")
+List<DetailsPayReceiveDTO> findDetailsPaymentByPaymentNameAndUsername(
+        @Param("username") String username,
+        @Param("paymentName") String name,
+        @Param("startDate") LocalDate startDate);
+
+@Query("SELECT new com.example.bake_boss_backend.dto.DetailsPayReceiveDTO(p.date, p.paymentNote, p.amount, 0.0) FROM OfficePayment p WHERE p.username=:username AND p.paymentName=:paymentName AND p.date between :startDate AND :endDate ORDER BY p.date ASC")
+List<DetailsPayReceiveDTO> findDatewiseDetailsPaymentByPaymentNameAndUsername(
+        @Param("username") String username,
+        @Param("paymentName") String name,
+        @Param("endDate") LocalDate startDate,
+        @Param("startDate") LocalDate endDate);
 }
