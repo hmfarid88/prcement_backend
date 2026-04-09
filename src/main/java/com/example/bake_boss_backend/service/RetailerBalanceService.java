@@ -106,30 +106,30 @@ public class RetailerBalanceService {
         return List.of();
     }
 
-   public List<RetailerBalanceDTO> datewiseRetailerBalance(LocalDate startDate, LocalDate endDate) {
+    public List<RetailerBalanceDTO> datewiseRetailerBalance(LocalDate startDate, LocalDate endDate) {
 
-    List<RetailerBalanceDTO> list = retailerPaymentRepository
-            .findRetailerBalanceBetweenDates(startDate, endDate);
+        List<RetailerBalanceDTO> list = retailerPaymentRepository
+                .findRetailerBalanceBetweenDates(startDate, endDate);
 
-    for (RetailerBalanceDTO dto : list) {
+        for (RetailerBalanceDTO dto : list) {
 
-        double productValue = dto.getTotalProductValue() != null ? dto.getTotalProductValue() : 0;
-        double payment = dto.getTotalPayment() != null ? dto.getTotalPayment() : 0;
-        double commission = dto.getTotalCommission() != null ? dto.getTotalCommission() : 0;
+            double productValue = dto.getTotalProductValue() != null ? dto.getTotalProductValue() : 0;
+            double payment = dto.getTotalPayment() != null ? dto.getTotalPayment() : 0;
+            double commission = dto.getTotalCommission() != null ? dto.getTotalCommission() : 0;
 
-        double balance = productValue - (payment + commission);
+            double balance = productValue - (payment + commission);
 
-        if (balance > 0) {
-            dto.setCredit(balance);
-            dto.setDebit(0.0);
-        } else {
-            dto.setDebit(Math.abs(balance));
-            dto.setCredit(0.0);
+            if (balance > 0) {
+                dto.setCredit(balance);
+                dto.setDebit(0.0);
+            } else {
+                dto.setDebit(Math.abs(balance));
+                dto.setCredit(0.0);
+            }
         }
-    }
 
-    return list;
-}
+        return list;
+    }
 
     public List<RetailerBalanceDTO> salesRetailerBalance(String salesPerson) {
         ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
@@ -930,56 +930,49 @@ public class RetailerBalanceService {
 
     public List<RetailerDetailsDTO> getDetailsByRetailerAndSalesPerson(
             String retailerName, String salesPerson) {
-        ClosingSetup lastClosingSetup = closingSetupRepository.findLastClosingSetup();
+        LocalDate now = LocalDate.now();
+        int year = now.getYear();
+        int month = now.getMonthValue();
+        List<RetailerDetailsDTO> productValue = Optional.ofNullable(
+                productStockrepository.findProductDetailsBySalesPersonAndRetailerName(salesPerson, retailerName, year, month))
+                .orElse(Collections.emptyList());
 
-        if (lastClosingSetup != null) {
-            LocalDate startDate = lastClosingSetup.getStartDate();
-            LocalDate endDate = lastClosingSetup.getEndDate();
+        List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
+                retailerPaymentRepository.findPaymentDetailsBySalesPersonAndRetailerName(salesPerson, retailerName, year, month))
+                .orElse(Collections.emptyList());
 
-            List<RetailerDetailsDTO> productValue = Optional.ofNullable(
-                    productStockrepository.findProductDetailsBySalesPersonAndRetailerName(salesPerson, retailerName,
-                            startDate, endDate))
-                    .orElse(Collections.emptyList());
+        List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
+                retailerCommissionRepository.findCommissionDetailsBySalesPersonAndRetailerName(salesPerson, retailerName, year, month))
+                .orElse(Collections.emptyList());
 
-            List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
-                    retailerPaymentRepository.findPaymentDetailsBySalesPersonAndRetailerName(salesPerson, retailerName,
-                            startDate, endDate))
-                    .orElse(Collections.emptyList());
+        List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
+        combinedDetails.addAll(productValue);
+        combinedDetails.addAll(paymentValue);
+        combinedDetails.addAll(commissionValue);
 
-            List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
-                    retailerCommissionRepository.findCommissionDetailsBySalesPersonAndRetailerName(salesPerson,
-                            retailerName, startDate, endDate))
-                    .orElse(Collections.emptyList());
+        combinedDetails.sort(
+                Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
 
-            List<RetailerDetailsDTO> combinedDetails = new ArrayList<>();
-            combinedDetails.addAll(productValue);
-            combinedDetails.addAll(paymentValue);
-            combinedDetails.addAll(commissionValue);
+        return combinedDetails;
 
-            combinedDetails.sort(
-                    Comparator.comparing(RetailerDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
-
-            return combinedDetails;
-        }
-
-        return Collections.emptyList();
     }
 
+    
     public List<RetailerDetailsDTO> getSalesDatewiseDetailsByRetailerAndSalesPerson(
             String salesPerson, String retailerName, LocalDate startDate, LocalDate endDate) {
 
         List<RetailerDetailsDTO> productValue = Optional.ofNullable(
-                productStockrepository.findProductDetailsBySalesPersonAndRetailerName(salesPerson, retailerName,
+                productStockrepository.findDatewiseProductDetailsBySalesPersonAndRetailerName(salesPerson, retailerName,
                         startDate, endDate))
                 .orElse(Collections.emptyList());
 
         List<RetailerDetailsDTO> paymentValue = Optional.ofNullable(
-                retailerPaymentRepository.findPaymentDetailsBySalesPersonAndRetailerName(salesPerson, retailerName,
+                retailerPaymentRepository.findDatewisePaymentDetailsBySalesPersonAndRetailerName(salesPerson, retailerName,
                         startDate, endDate))
                 .orElse(Collections.emptyList());
 
         List<RetailerDetailsDTO> commissionValue = Optional.ofNullable(
-                retailerCommissionRepository.findCommissionDetailsBySalesPersonAndRetailerName(salesPerson,
+                retailerCommissionRepository.findDatewiseCommissionDetailsBySalesPersonAndRetailerName(salesPerson,
                         retailerName, startDate, endDate))
                 .orElse(Collections.emptyList());
 

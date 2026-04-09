@@ -91,9 +91,11 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     // List<RetailerDetailsDTO> findPaymentDetailsByUsernameAndRetailerName(String
     // username, String retailerName, LocalDate startDate, LocalDate endDate);
 
+    @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(rp.date, rp.note, 'No', 0.0, 0.0, 0.0, rp.amount, 0.0, 0.0) FROM RetailerPayment rp JOIN RetailerInfo ri ON rp.retailerName = ri.retailerName WHERE ri.salesPerson = :salesPerson AND rp.retailerName = :retailerName AND YEAR(rp.date) = :year AND MONTH(rp.date) = :month")
+    List<RetailerDetailsDTO> findPaymentDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName, int year, int month);
+
     @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(rp.date, rp.note, 'No', 0.0, 0.0, 0.0, rp.amount, 0.0, 0.0) FROM RetailerPayment rp JOIN RetailerInfo ri ON rp.retailerName = ri.retailerName WHERE ri.salesPerson = :salesPerson AND rp.retailerName = :retailerName AND rp.date BETWEEN :startDate AND :endDate")
-    List<RetailerDetailsDTO> findPaymentDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName,
-            LocalDate startDate, LocalDate endDate);
+    List<RetailerDetailsDTO> findDatewisePaymentDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName, LocalDate startDate, LocalDate endDate);
 
     @Query("""
             SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(

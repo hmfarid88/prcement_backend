@@ -296,9 +296,11 @@ public interface ProductStockrepository extends JpaRepository<ProductStock, Long
         // username, String retailerName,
         // LocalDate startDate, LocalDate endDate);
 
+        @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty*ps.dpRate, 0.0, 0.0, 0.0) FROM ProductStock ps JOIN RetailerInfo ri ON ps.customer = ri.retailerName WHERE ri.salesPerson = :salesPerson AND ps.customer = :retailerName AND ps.status='sold' AND YEAR(ps.date) = :year AND MONTH(ps.date) = :month")
+        List<RetailerDetailsDTO> findProductDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName, int year, int month);
+
         @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty*ps.dpRate, 0.0, 0.0, 0.0) FROM ProductStock ps JOIN RetailerInfo ri ON ps.customer = ri.retailerName WHERE ri.salesPerson = :salesPerson AND ps.customer = :retailerName AND ps.status='sold' AND ps.date BETWEEN :startDate AND :endDate")
-        List<RetailerDetailsDTO> findProductDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName,
-                        LocalDate startDate, LocalDate endDate);
+        List<RetailerDetailsDTO> findDatewiseProductDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName, LocalDate startDate, LocalDate endDate);
 
         @Query("""
                         SELECT COALESCE(SUM(ps.productQty * ps.purchasePrice), 0)
@@ -321,8 +323,11 @@ public interface ProductStockrepository extends JpaRepository<ProductStock, Long
                         String supplierName,
                         LocalDate startDate, LocalDate endDate);
 
-        @Query("SELECT new com.example.bake_boss_backend.dto.TransportDetailsDTO(ps.date, ps.truckNo, SUM(ps.productQty), SUM(ps.rent), 0.0) FROM ProductStock ps WHERE ps.username = :username AND ps.status='sold' AND ps.transport = :transport  GROUP BY ps.date, ps.truckNo")
-        List<TransportDetailsDTO> findRentDetailsByUsernameAndSupplierName(String username, String transport);
+        @Query("SELECT new com.example.bake_boss_backend.dto.TransportDetailsDTO(ps.date, ps.truckNo, SUM(ps.productQty), SUM(ps.rent), 0.0) FROM ProductStock ps WHERE ps.username = :username AND ps.status='sold' AND ps.transport = :transport AND YEAR(ps.date) = :year AND MONTH(ps.date) = :month  GROUP BY ps.date, ps.truckNo")
+        List<TransportDetailsDTO> findRentDetailsByUsernameAndSupplierName(String username, String transport, int year, int month);
+
+        @Query("SELECT new com.example.bake_boss_backend.dto.TransportDetailsDTO(ps.date, ps.truckNo, SUM(ps.productQty), SUM(ps.rent), 0.0) FROM ProductStock ps WHERE ps.username = :username AND ps.status='sold' AND ps.transport = :transport AND ps.date BETWEEN :startDate AND :endDate  GROUP BY ps.date, ps.truckNo")
+        List<TransportDetailsDTO> findDatewiseRentDetailsByUsernameAndSupplierName(String username, String transport, LocalDate startDate, LocalDate endDate);
 
         @Modifying
         @Query("UPDATE ProductStock s SET s.remainingQty = s.remainingQty - :qtyDifference " +

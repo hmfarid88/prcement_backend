@@ -259,12 +259,33 @@ public List<SupplierDetailsDTO> getDetailsBySupplierAndUsername(
 
 
     public List<TransportDetailsDTO> getDetailsByTransportAndUsername(String username, String transport) {
+        LocalDate now = LocalDate.now();
+        int year = now.getYear();
+        int month = now.getMonthValue();
         List<TransportDetailsDTO> rentValue = Optional.ofNullable(
-                productStockRepository.findRentDetailsByUsernameAndSupplierName(username, transport))
+                productStockRepository.findRentDetailsByUsernameAndSupplierName(username, transport, year, month))
                 .orElse(Collections.emptyList());
 
         List<TransportDetailsDTO> paymentValue = Optional.ofNullable(
-                transportPaymentRepository.findPaymentDetailsByUsernameAndTransport(username, transport))
+                transportPaymentRepository.findPaymentDetailsByUsernameAndTransport(username, transport, year, month))
+                .orElse(Collections.emptyList());
+
+        List<TransportDetailsDTO> combinedDetails = new ArrayList<>();
+        combinedDetails.addAll(rentValue);
+        combinedDetails.addAll(paymentValue);
+        
+        combinedDetails.sort(
+                Comparator.comparing(TransportDetailsDTO::getDate, Comparator.nullsLast(Comparator.naturalOrder())));
+
+        return combinedDetails;
+    }
+    public List<TransportDetailsDTO> getDatewiseDetailsByTransportAndUsername(String username, String transport, LocalDate startDate, LocalDate endDate) {
+        List<TransportDetailsDTO> rentValue = Optional.ofNullable(
+                productStockRepository.findDatewiseRentDetailsByUsernameAndSupplierName(username, transport, startDate, endDate))
+                .orElse(Collections.emptyList());
+
+        List<TransportDetailsDTO> paymentValue = Optional.ofNullable(
+                transportPaymentRepository.findDatewisePaymentDetailsByUsernameAndTransport(username, transport, startDate, endDate))
                 .orElse(Collections.emptyList());
 
         List<TransportDetailsDTO> combinedDetails = new ArrayList<>();

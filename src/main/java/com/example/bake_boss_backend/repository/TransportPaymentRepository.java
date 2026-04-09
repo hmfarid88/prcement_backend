@@ -16,8 +16,11 @@ public interface TransportPaymentRepository extends JpaRepository<TransportPayme
       "FROM TransportPayment sp WHERE sp.username = :username GROUP BY sp.transport")
   List<Object[]> findTotalPaymentGroupedByTransportAndUsername(String username);
 
-  @Query("SELECT new com.example.bake_boss_backend.dto.TransportDetailsDTO(rp.date, 'No', 0.0, 0.0, SUM(rp.amount)) FROM TransportPayment rp WHERE rp.username = :username AND  rp.transport = :transport GROUP BY rp.date")
-  List<TransportDetailsDTO> findPaymentDetailsByUsernameAndTransport(String username, String transport);
+  @Query("SELECT new com.example.bake_boss_backend.dto.TransportDetailsDTO(rp.date, 'No', 0.0, 0.0, SUM(rp.amount)) FROM TransportPayment rp WHERE rp.username = :username AND  rp.transport = :transport AND YEAR(rp.date) = :year AND MONTH(rp.date) =:month GROUP BY rp.date")
+  List<TransportDetailsDTO> findPaymentDetailsByUsernameAndTransport(String username, String transport, int year, int month);
+
+  @Query("SELECT new com.example.bake_boss_backend.dto.TransportDetailsDTO(rp.date, 'No', 0.0, 0.0, SUM(rp.amount)) FROM TransportPayment rp WHERE rp.username = :username AND  rp.transport = :transport AND rp.date BETWEEN :startDate AND :endDate GROUP BY rp.date")
+  List<TransportDetailsDTO> findDatewisePaymentDetailsByUsernameAndTransport(String username, String transport, LocalDate startDate, LocalDate endDate);
 
   @Query("SELECT o FROM TransportPayment o WHERE YEAR(o.date) = :year AND MONTH(o.date) = :month AND o.username = :username ORDER BY o.date")
   List<TransportPayment> findPaymentsByMonth(@Param("year") int year, @Param("month") int month, @Param("username") String username);

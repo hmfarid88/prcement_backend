@@ -33,8 +33,11 @@ public interface RetailerCommissionRepository extends JpaRepository<RetailerComm
   // @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(rp.date, rp.note, 'No', 0.0, 0.0, 0.0, 0.0, rp.amount, 0.0) FROM RetailerCommission rp WHERE rp.username = :username AND  rp.retailerName = :retailerName AND rp.date BETWEEN :startDate AND :endDate")
   // List<RetailerDetailsDTO> findCommissionDetailsByUsernameAndRetailerName(String username, String retailerName, LocalDate startDate, LocalDate endDate);
 
+  @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(rp.date, rp.note, 'No', 0.0, 0.0, 0.0, 0.0, rp.amount, 0.0) FROM RetailerCommission rp JOIN RetailerInfo ri ON rp.retailerName = ri.retailerName WHERE ri.salesPerson = :salesPerson AND rp.retailerName = :retailerName AND YEAR(rp.date) = :year AND MONTH(rp.date) = :month")
+  List<RetailerDetailsDTO> findCommissionDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName, int year, int month);
+
   @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(rp.date, rp.note, 'No', 0.0, 0.0, 0.0, 0.0, rp.amount, 0.0) FROM RetailerCommission rp JOIN RetailerInfo ri ON rp.retailerName = ri.retailerName WHERE ri.salesPerson = :salesPerson AND rp.retailerName = :retailerName AND rp.date BETWEEN :startDate AND :endDate")
-  List<RetailerDetailsDTO> findCommissionDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName, LocalDate startDate, LocalDate endDate);
+  List<RetailerDetailsDTO> findDatewiseCommissionDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName, LocalDate startDate, LocalDate endDate);
 
   @Query("""
     SELECT COALESCE(SUM(r.amount), 0)

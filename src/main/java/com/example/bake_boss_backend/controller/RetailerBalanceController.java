@@ -147,8 +147,7 @@ public class RetailerBalanceController {
     public List<RetailerDetailsDTO> getDatewiseDetailsByRetailerAndSalesPerson(LocalDate startDate, LocalDate endDate,
             @RequestParam String retailerName,
             @RequestParam String salesPerson) {
-        return retailerBalanceService.getSalesDatewiseDetailsByRetailerAndSalesPerson(salesPerson, retailerName,
-                startDate, endDate);
+        return retailerBalanceService.getSalesDatewiseDetailsByRetailerAndSalesPerson(salesPerson, retailerName, startDate, endDate);
     }
 
     @GetMapping("/getRetailerList")

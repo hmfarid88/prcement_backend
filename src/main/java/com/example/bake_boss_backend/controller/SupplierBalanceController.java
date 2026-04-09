@@ -44,8 +44,13 @@ public class SupplierBalanceController {
 
     
     @GetMapping("/transport-details")
-    public List<TransportDetailsDTO> getDatewiseDetailsByTransportAndUsername(@RequestParam String username, @RequestParam String transport){
+    public List<TransportDetailsDTO> getDetailsByTransportAndUsername(@RequestParam String username, @RequestParam String transport){
         return supplierBalanceService.getDetailsByTransportAndUsername(username, transport);
+    }
+
+    @GetMapping("/datewise-transport-details")
+    public List<TransportDetailsDTO> getDatewiseDetailsByTransportAndUsername(@RequestParam String username, @RequestParam String transport, LocalDate startDate, LocalDate endDate){
+        return supplierBalanceService.getDatewiseDetailsByTransportAndUsername(username, transport, startDate, endDate);
     }
 
      @GetMapping("/supplierDue")
