@@ -83,73 +83,17 @@ public class RetailerBalanceController {
     return retailerBalanceService.datewiseRetailerBalance(startDate, endDate);
     }
 
-    @GetMapping("/salesRetailerBalance")
-    public List<RetailerBalanceDTO> salesRetailerBalance(@RequestParam String salesPerson) {
-        return retailerBalanceService.salesRetailerBalance(salesPerson);
-    }
-
-    @GetMapping("/salesDatewiseRetailerBalance")
-    public List<RetailerBalanceDTO> salesDatewiseRetailerBalance(String salesPerson, LocalDate startDate,
-            LocalDate endDate) {
-        return retailerBalanceService.salesDatewiseRetailerBalance(salesPerson, startDate, endDate);
-    }
-
     @GetMapping("/retailer-details-currentmonth")
-    public List<RetailerDetailsDTO> getDetailsByRetailerAndUsernameCurrentmonth(@RequestParam String retailerName,
-            @RequestParam String username) {
-        return retailerBalanceService.retailerDetailsForCurrentMonth(retailerName, username);
+    public List<RetailerDetailsDTO> getDetailsByRetailerAndUsernameCurrentmonth(@RequestParam String retailerName) {
+        return retailerBalanceService.retailerDetailsForCurrentMonth(retailerName);
     }
 
     @GetMapping("/retailer-details-datetodate")
-    public List<RetailerDetailsDTO> getDetailsByRetailerAndUsernameDatetodate(@RequestParam String username,
+    public List<RetailerDetailsDTO> getDetailsByRetailerAndUsernameDatetodate(
             @RequestParam String retailerName, @RequestParam LocalDate startDate, @RequestParam LocalDate endDate) {
-        return retailerBalanceService.retailerDetailsDatetodate(username, retailerName, startDate, endDate);
+        return retailerBalanceService.retailerDetailsDatetodate(retailerName, startDate, endDate);
     }
-
-    // @GetMapping("/retailer-details")
-    // public List<RetailerDetailsDTO> getDetailsByRetailerAndUsername(@RequestParam
-    // String retailerName, @RequestParam String username) {
-    // return
-    // retailerBalanceService.getDatewiseDetailsByRetailerAndUsername(retailerName,
-    // username);
-    // }
-
-    // @GetMapping("/retailer-details")
-    // public Page<RetailerDetailsDTO> getDetailsByRetailerAndUsername(
-    // @RequestParam String retailerName,
-    // @RequestParam String username,
-    // @RequestParam(defaultValue = "0") int page,
-    // @RequestParam(defaultValue = "20") int size) {
-
-    // return
-    // retailerBalanceService.getDatewiseDetailsByRetailerAndUsername(retailerName,
-    // username, page, size);
-    // }
-
-    // @GetMapping("/datewise-retailer-details")
-    // public Page<RetailerDetailsDTO>
-    // getDatewiseDetailsByRetailerAndUsername(@RequestParam String retailerName,
-    // @RequestParam String username, @RequestParam LocalDate startDate,
-    // @RequestParam LocalDate endDate, @RequestParam(defaultValue = "0") int page,
-    // @RequestParam(defaultValue = "20") int size) {
-    // return
-    // retailerBalanceService.getDatewiseRetailerDetailsByRetailerAndUsername(retailerName,
-    // username, startDate, endDate, page, size);
-    // }
-
-    @GetMapping("/sales-retailer-details")
-    public List<RetailerDetailsDTO> getDetailsByRetailerAndSalesPerson(
-            @RequestParam String retailerName, @RequestParam String salesPerson) {
-        return retailerBalanceService.getDetailsByRetailerAndSalesPerson(retailerName, salesPerson);
-    }
-
-    @GetMapping("/sales-datewise-retailer-details")
-    public List<RetailerDetailsDTO> getDatewiseDetailsByRetailerAndSalesPerson(LocalDate startDate, LocalDate endDate,
-            @RequestParam String retailerName,
-            @RequestParam String salesPerson) {
-        return retailerBalanceService.getSalesDatewiseDetailsByRetailerAndSalesPerson(salesPerson, retailerName, startDate, endDate);
-    }
-
+   
     @GetMapping("/getRetailerList")
     public List<RetailerInfo> getAllRetailersOrderedByName() {
         return retailerInfoRepository.findAllByOrderByRetailerNameAsc();

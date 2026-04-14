@@ -22,7 +22,6 @@ import com.example.bake_boss_backend.dto.DailyWarehouseStockDTO;
 import com.example.bake_boss_backend.dto.MonthlySaleDTO;
 import com.example.bake_boss_backend.dto.MonthlySrSaleDTO;
 import com.example.bake_boss_backend.dto.ProductRetailerDTO;
-import com.example.bake_boss_backend.entity.ClosingSetup;
 import com.example.bake_boss_backend.entity.EmployeeInfo;
 import com.example.bake_boss_backend.entity.EmployeeTarget;
 import com.example.bake_boss_backend.entity.ExpenseName;
@@ -133,13 +132,7 @@ public class ProductController {
     @Autowired
     private ExpenseNameRepository expenseNameRepository;
 
-    @PostMapping("/closingSetup")
-    public ClosingSetup saveOrUpdateClosingSetup(@RequestBody Map<String, String> request) {
-        LocalDate startDate = LocalDate.parse(request.get("startDate"));
-        LocalDate endDate = LocalDate.parse(request.get("endDate"));
-        return productStockService.saveOrUpdateClosingSetup(startDate, endDate);
-    }
-
+  
     @PostMapping("/addProductName")
     public ResponseEntity<?> addProduct(@RequestBody ProductName productName) {
         if (productNameRepository.existsByUsernameAndProductName(productName.getUsername(),
