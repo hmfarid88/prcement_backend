@@ -508,6 +508,7 @@ public class ProductController {
                 newItem.setRemainingQty(latestProductStock.getRemainingQty() - newItem.getProductQty());
                 newItem.setPurchasePrice(latestProductStock.getPurchasePrice());
                 newItem.setSupplier(latestProductStock.getSupplier());
+                newItem.setWarehouse(latestProductStock.getWarehouse());
             }
             productStockrepository.save(newItem);
 

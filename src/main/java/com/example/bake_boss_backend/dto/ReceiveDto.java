@@ -14,4 +14,5 @@ public class ReceiveDto {
     private String name;
     private String note;
     private Double amount;
+    private String salesPerson;
 }

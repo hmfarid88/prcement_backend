@@ -5,6 +5,8 @@ import java.time.LocalDate;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -13,15 +15,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(
-    name = "retailer_payment",
-    indexes = {
+@Table(name = "retailer_payment", indexes = {
         @Index(name = "idx_username", columnList = "username"),
         @Index(name = "idx_retailer_name", columnList = "retailerName"),
         @Index(name = "idx_username_retailer_name", columnList = "username, retailerName"),
         @Index(name = "idx_username_date", columnList = "username, date")
-    }
-)
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -34,4 +33,8 @@ public class RetailerPayment {
     private String note;
     private Double amount;
     private String username;
+
+    // @ManyToOne
+    // @JoinColumn(name = "retailer_id")
+    // private RetailerInfo retailer;
 }

@@ -54,11 +54,32 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
             ") AS total_amount", nativeQuery = true)
     Double findNetSumAmountToday(@Param("username") String username);
 
-    @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(rp.date, rp.retailerName, rp.note, rp.amount) "
-            +
-            "FROM RetailerPayment rp " +
-            "WHERE rp.username = :username AND rp.note !='opening' AND rp.date = :date")
-    List<ReceiveDto> findRetailerPaymentsForToday(@Param("username") String username, @Param("date") LocalDate date);
+    // @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(rp.date, rp.retailerName, rp.note, rp.amount) "
+    //         +
+    //         "FROM RetailerPayment rp " +
+    //         "WHERE rp.username = :username AND rp.note !='opening' AND rp.date = :date")
+    // List<ReceiveDto> findRetailerPaymentsForToday(@Param("username") String username, @Param("date") LocalDate date);
+    
+    @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(" +
+       "rp.date, rp.retailerName, rp.note, rp.amount, ri.salesPerson) " +
+       "FROM RetailerPayment rp " +
+       "JOIN RetailerInfo ri ON rp.retailerName = ri.retailerName " +
+       "WHERE rp.username = :username " +
+       "AND rp.note != 'opening' " +
+       "AND rp.date = :date")
+    List<ReceiveDto> findRetailerPaymentsForToday(
+        @Param("username") String username,
+        @Param("date") LocalDate date);
+
+//     @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(" +
+//        "rp.date, rp.retailer.retailerName, rp.note, rp.amount, rp.retailer.salesPerson) " +
+//        "FROM RetailerPayment rp " +
+//        "WHERE rp.username = :username " +
+//        "AND rp.note <> 'opening' " +
+//        "AND rp.date = :date")
+// List<ReceiveDto> findRetailerPaymentsForToday(
+//         @Param("username") String username,
+//         @Param("date") LocalDate date);
 
     @Query("SELECT o FROM RetailerPayment o WHERE YEAR(o.date) = :year AND MONTH(o.date) = :month AND o.username = :username ORDER BY o.date")
     List<RetailerPayment> findRetailerPayByMonth(@Param("year") int year, @Param("month") int month,
