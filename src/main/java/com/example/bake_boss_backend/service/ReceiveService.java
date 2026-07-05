@@ -20,7 +20,6 @@ public class ReceiveService {
     @Autowired
     private RetailerPaymentRepository retailerPaymentRepository;
 
-  
     public List<ReceiveDto> findReceivesForToday(String username, LocalDate date) {
         List<ReceiveDto> receives = new ArrayList<>();
         receives.addAll(officeReceiveRepository.findOfficeReceivesForToday(username, date));

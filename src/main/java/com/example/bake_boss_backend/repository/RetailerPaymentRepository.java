@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -13,11 +14,13 @@ import com.example.bake_boss_backend.dto.RetailerBalanceDTO;
 import com.example.bake_boss_backend.dto.RetailerDetailsDTO;
 import com.example.bake_boss_backend.entity.RetailerPayment;
 
+import jakarta.transaction.Transactional;
+
 public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment, Long> {
     @Query(value = "SELECT ( " +
             "  (SELECT COALESCE(SUM(amount), 0) FROM retailer_payment WHERE username = :username AND note !='opening' AND DATE(date) < :date) + "
             +
-            "  (SELECT COALESCE(SUM(amount), 0) FROM office_receive WHERE username = :username AND DATE(date) < :date) "
+            "  (SELECT COALESCE(SUM(amount), 0) FROM office_receive WHERE username = :username AND  receive_note != 'opening' AND DATE(date) < :date) "
             +
             ") - ( " +
             "  (SELECT COALESCE(SUM(amount), 0) FROM expense WHERE username = :username AND DATE(date) < :date) + "
@@ -37,7 +40,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     @Query(value = "SELECT ( " +
             "  (SELECT COALESCE(SUM(amount), 0) FROM retailer_payment WHERE note !='opening' AND username = :username) + "
             +
-            "  (SELECT COALESCE(SUM(amount), 0) FROM office_receive WHERE username = :username) "
+            "  (SELECT COALESCE(SUM(amount), 0) FROM office_receive WHERE username = :username AND receive_note != 'opening') "
             +
             ") - ( " +
             "  (SELECT COALESCE(SUM(amount), 0) FROM expense WHERE username = :username) + "
@@ -54,46 +57,50 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
             ") AS total_amount", nativeQuery = true)
     Double findNetSumAmountToday(@Param("username") String username);
 
-    // @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(rp.date, rp.retailerName, rp.note, rp.amount) "
-    //         +
-    //         "FROM RetailerPayment rp " +
-    //         "WHERE rp.username = :username AND rp.note !='opening' AND rp.date = :date")
-    // List<ReceiveDto> findRetailerPaymentsForToday(@Param("username") String username, @Param("date") LocalDate date);
-    
-    @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(" +
-       "rp.date, rp.retailerName, rp.note, rp.amount, ri.salesPerson) " +
-       "FROM RetailerPayment rp " +
-       "JOIN RetailerInfo ri ON rp.retailerName = ri.retailerName " +
-       "WHERE rp.username = :username " +
-       "AND rp.note != 'opening' " +
-       "AND rp.date = :date")
-    List<ReceiveDto> findRetailerPaymentsForToday(
-        @Param("username") String username,
-        @Param("date") LocalDate date);
+    // @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(rp.date,
+    // rp.retailerName, rp.note, rp.amount) "
+    // +
+    // "FROM RetailerPayment rp " +
+    // "WHERE rp.username = :username AND rp.note !='opening' AND rp.date = :date")
+    // List<ReceiveDto> findRetailerPaymentsForToday(@Param("username") String
+    // username, @Param("date") LocalDate date);
 
-//     @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(" +
-//        "rp.date, rp.retailer.retailerName, rp.note, rp.amount, rp.retailer.salesPerson) " +
-//        "FROM RetailerPayment rp " +
-//        "WHERE rp.username = :username " +
-//        "AND rp.note <> 'opening' " +
-//        "AND rp.date = :date")
-// List<ReceiveDto> findRetailerPaymentsForToday(
-//         @Param("username") String username,
-//         @Param("date") LocalDate date);
+    @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(" +
+            "rp.date, rp.retailerName, rp.note, rp.amount, ri.salesPerson) " +
+            "FROM RetailerPayment rp " +
+            "JOIN RetailerInfo ri ON rp.retailerName = ri.retailerName " +
+            "WHERE rp.username = :username " +
+            "AND rp.note != 'opening' " +
+            "AND rp.date = :date")
+    List<ReceiveDto> findRetailerPaymentsForToday(
+            @Param("username") String username,
+            @Param("date") LocalDate date);
+
+    // @Query("SELECT new com.example.bake_boss_backend.dto.ReceiveDto(" +
+    // "rp.date, rp.retailer.retailerName, rp.note, rp.amount,
+    // rp.retailer.salesPerson) " +
+    // "FROM RetailerPayment rp " +
+    // "WHERE rp.username = :username " +
+    // "AND rp.note <> 'opening' " +
+    // "AND rp.date = :date")
+    // List<ReceiveDto> findRetailerPaymentsForToday(
+    // @Param("username") String username,
+    // @Param("date") LocalDate date);
 
     @Query("SELECT o FROM RetailerPayment o WHERE YEAR(o.date) = :year AND MONTH(o.date) = :month AND o.username = :username ORDER BY o.date")
     List<RetailerPayment> findRetailerPayByMonth(@Param("year") int year, @Param("month") int month,
             @Param("username") String username);
 
     @Query("SELECT ps FROM RetailerPayment ps WHERE  ps.username=:username AND ps.date BETWEEN :startDate AND :endDate ORDER BY ps.date")
-    List<RetailerPayment> findDatewiseRetailerPaymentByUsername(String username, LocalDate startDate, LocalDate endDate);
+    List<RetailerPayment> findDatewiseRetailerPaymentByUsername(String username, LocalDate startDate,
+            LocalDate endDate);
 
     @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(rp.date, rp.note, 'No', 0.0, 0.0, 0.0, rp.amount, 0.0, 0.0) FROM RetailerPayment rp WHERE rp.retailerName = :retailerName AND (YEAR(rp.date) < :year OR (YEAR(rp.date) = :year AND MONTH(rp.date) < :month))")
     List<RetailerDetailsDTO> findPaymentDetailsByUsernameAndRetailerNameBeforemonth(String retailerName, int year, int month);
 
     @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(rp.date, rp.note, 'No', 0.0, 0.0, 0.0, rp.amount, 0.0, 0.0) FROM RetailerPayment rp JOIN RetailerInfo ri ON rp.retailerName = ri.retailerName WHERE ri.salesPerson = :salesPerson AND rp.retailerName = :retailerName AND (YEAR(rp.date) < :year OR (YEAR(rp.date) = :year AND MONTH(rp.date) < :month))")
     List<RetailerDetailsDTO> findPaymentDetailsBySalesPersonAndRetailerNameBeforemonth(String salesPerson, String retailerName, int year, int month);
-    
+
     @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(rp.date, rp.note, 'No', 0.0, 0.0, 0.0, rp.amount, 0.0, 0.0) FROM RetailerPayment rp JOIN RetailerInfo ri ON rp.retailerName = ri.retailerName WHERE ri.salesPerson = :salesPerson AND rp.retailerName = :retailerName AND rp.date < :startDate")
     List<RetailerDetailsDTO> findPaymentDetailsBySalesPersonAndRetailerNameBeforeDate(String salesPerson, String retailerName, LocalDate startDate);
 
@@ -115,14 +122,16 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
     // username, String retailerName, LocalDate startDate, LocalDate endDate);
 
     @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(rp.date, rp.note, 'No', 0.0, 0.0, 0.0, rp.amount, 0.0, 0.0) FROM RetailerPayment rp JOIN RetailerInfo ri ON rp.retailerName = ri.retailerName WHERE ri.salesPerson = :salesPerson AND rp.retailerName = :retailerName AND YEAR(rp.date) = :year AND MONTH(rp.date) = :month")
-    List<RetailerDetailsDTO> findPaymentDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName, int year, int month);
+    List<RetailerDetailsDTO> findPaymentDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName,
+            int year, int month);
 
     @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(rp.date, rp.note, 'No', 0.0, 0.0, 0.0, rp.amount, 0.0, 0.0) FROM RetailerPayment rp JOIN RetailerInfo ri ON rp.retailerName = ri.retailerName WHERE ri.salesPerson = :salesPerson AND rp.retailerName = :retailerName AND rp.date BETWEEN :startDate AND :endDate")
-    List<RetailerDetailsDTO> findDatewisePaymentDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName, LocalDate startDate, LocalDate endDate);
+    List<RetailerDetailsDTO> findDatewisePaymentDetailsBySalesPersonAndRetailerName(String salesPerson,
+            String retailerName, LocalDate startDate, LocalDate endDate);
 
     @Query("""
             SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
-                r.category, 
+                r.category,
                 COALESCE(SUM(ps.productQty), 0),
                 COALESCE(SUM(ps.productQty * ps.dpRate), 0),
                 (SELECT COALESCE(SUM(rp.amount), 0)
@@ -142,7 +151,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
                 AND FUNCTION('YEAR', ps.date) = FUNCTION('YEAR', CURRENT_DATE)
                 AND FUNCTION('MONTH', ps.date) = FUNCTION('MONTH', CURRENT_DATE)
             WHERE r.status = 'Active'
-            GROUP BY r.category, r.retailerName ORDER BY r.category ASC 
+            GROUP BY r.category, r.retailerName ORDER BY r.category ASC
             """)
     List<CategoryBalanceDTO> findCategoryRawBalanceForCurrentMonth();
 
@@ -306,7 +315,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
 
     @Query("""
                 SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
-                    r.category, 
+                    r.category,
                     COALESCE(SUM(ps.productQty), 0),
                     COALESCE(SUM(ps.productQty * ps.dpRate), 0),
                     (SELECT COALESCE(SUM(rp.amount), 0)
@@ -422,35 +431,33 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
             @Param("salesPerson") String salesPerson);
 
     @Query("""
-    SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
-        r.retailerName,
-        COALESCE(SUM(ps.productQty), 0),
-        COALESCE(SUM(ps.productQty * ps.dpRate), 0),
+                SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
+                    r.retailerName,
+                    COALESCE(SUM(ps.productQty), 0),
+                    COALESCE(SUM(ps.productQty * ps.dpRate), 0),
 
-        (SELECT COALESCE(SUM(rp.amount), 0)
-         FROM RetailerPayment rp
-         WHERE rp.retailerName = r.retailerName
-           AND rp.date < :startDate),
+                    (SELECT COALESCE(SUM(rp.amount), 0)
+                     FROM RetailerPayment rp
+                     WHERE rp.retailerName = r.retailerName
+                       AND rp.date < :startDate),
 
-        (SELECT COALESCE(SUM(rc.amount), 0)
-         FROM RetailerCommission rc
-         WHERE rc.retailerName = r.retailerName
-           AND rc.date < :startDate)
-    )
-    FROM RetailerInfo r
-    LEFT JOIN ProductStock ps
-       ON ps.customer = r.retailerName
-      AND ps.date < :startDate
-    WHERE r.salesPerson = :salesPerson
-      AND r.status = 'Active'
-    GROUP BY r.retailerName
-    ORDER BY r.retailerName ASC
-""")
-List<CategoryBalanceDTO> findMarketRetailerOpeningBalanceBeforeDate(
-        @Param("salesPerson") String salesPerson,
-        @Param("startDate") LocalDate startDate
-);
-
+                    (SELECT COALESCE(SUM(rc.amount), 0)
+                     FROM RetailerCommission rc
+                     WHERE rc.retailerName = r.retailerName
+                       AND rc.date < :startDate)
+                )
+                FROM RetailerInfo r
+                LEFT JOIN ProductStock ps
+                   ON ps.customer = r.retailerName
+                  AND ps.date < :startDate
+                WHERE r.salesPerson = :salesPerson
+                  AND r.status = 'Active'
+                GROUP BY r.retailerName
+                ORDER BY r.retailerName ASC
+            """)
+    List<CategoryBalanceDTO> findMarketRetailerOpeningBalanceBeforeDate(
+            @Param("salesPerson") String salesPerson,
+            @Param("startDate") LocalDate startDate);
 
     @Query("""
             SELECT new com.example.bake_boss_backend.dto.CategoryBalanceDTO(
@@ -478,41 +485,40 @@ List<CategoryBalanceDTO> findMarketRetailerOpeningBalanceBeforeDate(
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate);
 
-
-            @Query("SELECT new com.example.bake_boss_backend.dto.RetailerBalanceDTO(" +
-    "r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson, " +
-    "COALESCE(SUM(ps.productQty), 0) as totalProductQty, " +
-    "COALESCE(SUM(ps.productQty * ps.dpRate), 0) as totalProductValue, " +
-    "(SELECT COALESCE(SUM(rp.amount), 0) FROM RetailerPayment rp " +
-    " WHERE rp.retailerName = r.retailerName) as totalPayment, "
-    +
-    "(SELECT COALESCE(SUM(rc.amount), 0) FROM RetailerCommission rc " +
-    " WHERE rc.retailerName = r.retailerName) as totalCommission) "
-    +
-    "FROM RetailerInfo r " +
-    "LEFT JOIN ProductStock ps ON ps.customer = r.retailerName " +
-    "WHERE r.status = 'Active' " +
-    "GROUP BY r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson ORDER BY r.category")
+    @Query("SELECT new com.example.bake_boss_backend.dto.RetailerBalanceDTO(" +
+            "r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson, " +
+            "COALESCE(SUM(ps.productQty), 0) as totalProductQty, " +
+            "COALESCE(SUM(ps.productQty * ps.dpRate), 0) as totalProductValue, " +
+            "(SELECT COALESCE(SUM(rp.amount), 0) FROM RetailerPayment rp " +
+            " WHERE rp.retailerName = r.retailerName) as totalPayment, "
+            +
+            "(SELECT COALESCE(SUM(rc.amount), 0) FROM RetailerCommission rc " +
+            " WHERE rc.retailerName = r.retailerName) as totalCommission) "
+            +
+            "FROM RetailerInfo r " +
+            "LEFT JOIN ProductStock ps ON ps.customer = r.retailerName " +
+            "WHERE r.status = 'Active' " +
+            "GROUP BY r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson ORDER BY r.category")
     List<RetailerBalanceDTO> findRetailerBalance();
 
     @Query("SELECT new com.example.bake_boss_backend.dto.RetailerBalanceDTO(" +
-    "r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson, " +
-    "COALESCE(SUM(ps.productQty), 0) as totalProductQty, " +
-    "COALESCE(SUM(ps.productQty * ps.dpRate), 0) as totalProductValue, " +
-    "(SELECT COALESCE(SUM(rp.amount), 0) FROM RetailerPayment rp " +
-    " WHERE rp.retailerName = r.retailerName AND rp.date BETWEEN :startDate AND :endDate) as totalPayment, "
-    +
-    "(SELECT COALESCE(SUM(rc.amount), 0) FROM RetailerCommission rc " +
-    " WHERE rc.retailerName = r.retailerName AND rc.date BETWEEN :startDate AND :endDate) as totalCommission) "
-    +
-    "FROM RetailerInfo r " +
-    "LEFT JOIN ProductStock ps ON ps.customer = r.retailerName " +
-    "AND ps.date BETWEEN :startDate AND :endDate " +
-    "WHERE r.status = 'Active' " +
-    "GROUP BY r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson ORDER BY r.category")
+            "r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson, " +
+            "COALESCE(SUM(ps.productQty), 0) as totalProductQty, " +
+            "COALESCE(SUM(ps.productQty * ps.dpRate), 0) as totalProductValue, " +
+            "(SELECT COALESCE(SUM(rp.amount), 0) FROM RetailerPayment rp " +
+            " WHERE rp.retailerName = r.retailerName AND rp.date BETWEEN :startDate AND :endDate) as totalPayment, "
+            +
+            "(SELECT COALESCE(SUM(rc.amount), 0) FROM RetailerCommission rc " +
+            " WHERE rc.retailerName = r.retailerName AND rc.date BETWEEN :startDate AND :endDate) as totalCommission) "
+            +
+            "FROM RetailerInfo r " +
+            "LEFT JOIN ProductStock ps ON ps.customer = r.retailerName " +
+            "AND ps.date BETWEEN :startDate AND :endDate " +
+            "WHERE r.status = 'Active' " +
+            "GROUP BY r.category, r.areaName, r.retailerName, r.retailerCode, r.salesPerson ORDER BY r.category")
     List<RetailerBalanceDTO> findRetailerBalanceBetweenDates(
-    @Param("startDate") LocalDate startDate,
-    @Param("endDate") LocalDate endDate);
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
 
     // sales
     @Query("SELECT new com.example.bake_boss_backend.dto.RetailerBalanceDTO(" +
@@ -544,12 +550,17 @@ List<CategoryBalanceDTO> findMarketRetailerOpeningBalanceBeforeDate(
             @Param("month") int month);
 
     @Query("SELECT SUM(rp.amount) FROM RetailerPayment rp WHERE rp.retailerName IN :retailerNames AND YEAR(rp.date) = :year AND MONTH(rp.date) = :month")
-    Double getPaymentValueForRetailers(@Param("retailerNames") List<String> retailerNames, @Param("year") int year, @Param("month") int month);
+    Double getPaymentValueForRetailers(@Param("retailerNames") List<String> retailerNames, @Param("year") int year,
+            @Param("month") int month);
 
     @Query("""
-    SELECT COALESCE(SUM(r.amount), 0)
-    FROM RetailerPayment r
-    """)
-Double getTotalRetailerPayment();
+            SELECT COALESCE(SUM(r.amount), 0)
+            FROM RetailerPayment r
+            """)
+    Double getTotalRetailerPayment();
 
+    @Modifying
+    @Transactional
+    @Query("UPDATE RetailerPayment r SET r.retailerName = :newName WHERE r.retailerName = :oldName")
+    void updateRetailerName(@Param("oldName") String oldName, @Param("newName") String newName);
 }

@@ -40,7 +40,8 @@ public class ProductStockService {
         return productStockRepository.findProductBySalesPerson(year, month, username);
     }
 
-    public List<ProductRetailerDTO> getDatewiseSoldProductStock(String username, LocalDate startDate, LocalDate endDate) {
+    public List<ProductRetailerDTO> getDatewiseSoldProductStock(String username, LocalDate startDate,
+            LocalDate endDate) {
         return productStockRepository.findDatewiseSoldProductByUsername(startDate, endDate, username);
     }
 
@@ -74,7 +75,7 @@ public class ProductStockService {
     public List<OrderInfo> getExistingSingleOrder(Long orderId) {
         return orderInfoRepository.findByOrderId(orderId);
     }
-   
+
     public Double getTotalSoldProductQtyToday() {
         return productStockRepository.findTotalSoldProductQtyToday();
     }
@@ -84,7 +85,6 @@ public class ProductStockService {
                 .orElseThrow(() -> new RuntimeException("ProductStock not found with ID: " + productId));
     }
 
-   
     @Transactional
     public ProductStock updateProductSale(Long productId, ProductStock updatedProductStock) {
         Optional<ProductStock> existingProductOpt = productStockRepository.findById(productId);
@@ -108,8 +108,9 @@ public class ProductStockService {
             existingProduct.setNote(updatedProductStock.getNote());
 
             if (!oldProductName.equals(newProductName)) {
-                
-                Double previousRemainingQty = productStockRepository.findRemainingQtyByProductName(newProductName, productId);
+
+                Double previousRemainingQty = productStockRepository.findRemainingQtyByProductName(newProductName,
+                        productId);
                 Double newRemainingQty = previousRemainingQty;
                 productStockRepository.updateRemainingQtyByProductName(newProductName, productId, newRemainingQty);
                 productStockRepository.increaseRemainingQty(oldProductName, productId, oldQty);
@@ -128,94 +129,99 @@ public class ProductStockService {
             throw new RuntimeException("Product not found with ID: " + productId);
         }
     }
-   @Transactional
+
+    @Transactional
     public void deleteProductSale(Long productId) {
-    Optional<ProductStock> existingProductOpt = productStockRepository.findById(productId);
+        Optional<ProductStock> existingProductOpt = productStockRepository.findById(productId);
 
-    if (existingProductOpt.isPresent()) {
-        ProductStock existingProduct = existingProductOpt.get();
+        if (existingProductOpt.isPresent()) {
+            ProductStock existingProduct = existingProductOpt.get();
 
-        String productName = existingProduct.getProductName();
-        Double soldQty = existingProduct.getProductQty();
+            String productName = existingProduct.getProductName();
+            Double soldQty = existingProduct.getProductQty();
 
-        // Restore the stock (increase remaining quantity)
-        productStockRepository.increaseRemainingQty(productName, productId, soldQty);
+            // Restore the stock (increase remaining quantity)
+            productStockRepository.increaseRemainingQty(productName, productId, soldQty);
 
-        // Now delete the sale record
-        productStockRepository.deleteById(productId);
+            // Now delete the sale record
+            productStockRepository.deleteById(productId);
 
-    } else {
-        throw new RuntimeException("Product not found with ID: " + productId);
+        } else {
+            throw new RuntimeException("Product not found with ID: " + productId);
+        }
     }
-}
+
     @Transactional
     public ProductStock updateProductEntry(Long productId, ProductStock updatedProductStock) {
-    Optional<ProductStock> existingProductOpt = productStockRepository.findById(productId);
+        Optional<ProductStock> existingProductOpt = productStockRepository.findById(productId);
 
-    if (existingProductOpt.isPresent()) {
-        ProductStock existingProduct = existingProductOpt.get();
-        Double oldQty = existingProduct.getProductQty();
-        Double newQty = updatedProductStock.getProductQty();
-        Double qtyDifference = newQty - oldQty;
+        if (existingProductOpt.isPresent()) {
+            ProductStock existingProduct = existingProductOpt.get();
+            Double oldQty = existingProduct.getProductQty();
+            Double newQty = updatedProductStock.getProductQty();
+            Double qtyDifference = newQty - oldQty;
 
-        String oldProductName = existingProduct.getProductName();
-        String newProductName = updatedProductStock.getProductName();
-        Double oldPprice = existingProduct.getPurchasePrice();
-        Double newPprice = updatedProductStock.getPurchasePrice();
-        
+            String oldProductCategory = existingProduct.getCategory();
+            String oldProductName = existingProduct.getProductName();
+            String newProductName = updatedProductStock.getProductName();
+            String newProductCategory = updatedProductStock.getCategory();
+            Double oldPprice = existingProduct.getPurchasePrice();
+            Double newPprice = updatedProductStock.getPurchasePrice();
 
-        // Handle name change before updating the product name
-        if (!oldProductName.equals(newProductName)) {
-            productStockRepository.reduceRemainingQty(oldProductName, productId, oldQty);
-            productStockRepository.increaseRemainingQty(newProductName, productId, newQty);
-            existingProduct.setProductName(newProductName);
-        }
+            // Handle name change before updating the product name
+            if (!oldProductCategory.equals(newProductCategory) || !oldProductName.equals(newProductName)) {
+                productStockRepository.reduceRemainingQty(oldProductName, productId, oldQty);
+                productStockRepository.increaseRemainingQty(newProductName, productId, newQty);
+                existingProduct.setCategory(updatedProductStock.getCategory());
+                existingProduct.setProductName(newProductName);
+            }
 
-        // Handle price update and cost price recalculation
-        if (Double.compare(oldPprice, newPprice) != 0) {
+            // Handle price update and cost price recalculation
+            if (Double.compare(oldPprice, newPprice) != 0) {
                 Double newTotalQty = existingProduct.getRemainingQty() + updatedProductStock.getProductQty();
                 Double totalValue = (existingProduct.getRemainingQty() * existingProduct.getCostPrice()) +
                         (updatedProductStock.getProductQty() * updatedProductStock.getPurchasePrice());
                 Double newCostPrice = totalValue / newTotalQty;
                 existingProduct.setCostPrice(newCostPrice);
 
+            }
+
+            // Handle qty difference
+            if (qtyDifference > 0) {
+                productStockRepository.increaseRemainingQty(oldProductName, productId, qtyDifference);
+            } else if (qtyDifference < 0) {
+                productStockRepository.reduceRemainingQty(oldProductName, productId, Math.abs(qtyDifference));
+            }
+
+            // Now update remaining fields
+            existingProduct.setDate(updatedProductStock.getDate());
+            existingProduct.setSupplier(updatedProductStock.getSupplier());
+            existingProduct.setWarehouse(updatedProductStock.getWarehouse());
+            existingProduct.setProductQty(newQty);
+            existingProduct.setPurchasePrice(newPprice);
+            existingProduct.setRemainingQty(existingProduct.getRemainingQty() + qtyDifference);
+
+            return productStockRepository.save(existingProduct);
+        } else {
+            throw new RuntimeException("Product not found with ID: " + productId);
         }
+    }
 
-        // Handle qty difference
-        if (qtyDifference > 0) {
-            productStockRepository.increaseRemainingQty(oldProductName, productId, qtyDifference);
-        } else if (qtyDifference < 0) {
-            productStockRepository.reduceRemainingQty(oldProductName, productId, Math.abs(qtyDifference));
+    @Transactional
+    public ProductStock deleteProductEntry(Long productId) {
+        Optional<ProductStock> existingProductOpt = productStockRepository.findById(productId);
+        if (existingProductOpt.isPresent()) {
+            ProductStock existingProduct = existingProductOpt.get();
+            String oldProductName = existingProduct.getProductName();
+            Double qtyDifference = existingProduct.getProductQty();
+            productStockRepository.reduceRemainingQty(oldProductName, productId, qtyDifference);
+            productStockRepository.deleteById(productId);
+            return existingProduct;
         }
-
-        // Now update remaining fields
-        existingProduct.setDate(updatedProductStock.getDate());
-        existingProduct.setSupplier(updatedProductStock.getSupplier());
-        existingProduct.setWarehouse(updatedProductStock.getWarehouse());
-        existingProduct.setProductQty(newQty);
-        existingProduct.setPurchasePrice(newPprice);
-        existingProduct.setRemainingQty(existingProduct.getRemainingQty()+qtyDifference);
-         
-        return productStockRepository.save(existingProduct);
-    } else {
-        throw new RuntimeException("Product not found with ID: " + productId);
+        throw new RuntimeException("Product with ID " + productId + " not found.");
     }
-}
-@Transactional
-public ProductStock deleteProductEntry(Long productId){
-    Optional<ProductStock> existingProductOpt = productStockRepository.findById(productId);
-    if (existingProductOpt.isPresent()) {
-        ProductStock existingProduct = existingProductOpt.get();
-        String oldProductName=existingProduct.getProductName();
-        Double qtyDifference=existingProduct.getProductQty();
-        productStockRepository.reduceRemainingQty(oldProductName, productId, qtyDifference);
-        productStockRepository.deleteById(productId);
-        return existingProduct;
-    }
-    throw new RuntimeException("Product with ID " + productId + " not found.");
-}
 
-public List<DailyWarehouseStockDTO> getWarehouseDailyReport(String username, LocalDate date) {
+    public List<DailyWarehouseStockDTO> getWarehouseDailyReport(String username, LocalDate date) {
 
         List<Object[]> rows = productStockRepository.getWarehouseDailyStock(username, date);
         List<DailyWarehouseStockDTO> list = new ArrayList<>();
@@ -223,28 +229,40 @@ public List<DailyWarehouseStockDTO> getWarehouseDailyReport(String username, Loc
         for (Object[] r : rows) {
 
             String warehouse = (String) r[0];
-            String productName = (String) r[1];
-            Double previousQty = ((Number) r[2]).doubleValue();
-            Double todayEntryQty = ((Number) r[3]).doubleValue();
-            Double todaySaleQty = ((Number) r[4]).doubleValue();
-            Double costPrice = ((Number) r[5]).doubleValue();
+            String category = (String) r[1];
+            String productName = (String) r[2];
+            Double previousQty = ((Number) r[3]).doubleValue();
+            Double todayEntryQty = ((Number) r[4]).doubleValue();
+            Double todaySaleQty = ((Number) r[5]).doubleValue();
+            Double costPrice = ((Number) r[6]).doubleValue();
 
             Double presentQty = previousQty + todayEntryQty - todaySaleQty;
             Double totalValue = presentQty * costPrice;
 
             list.add(new DailyWarehouseStockDTO(
                     warehouse,
+                    category,
                     productName,
                     previousQty,
                     todayEntryQty,
                     todaySaleQty,
                     presentQty,
                     costPrice,
-                    totalValue
-            ));
+                    totalValue));
         }
 
         return list;
     }
+
+    public List<ProductStock> getCurrentMonthData(String username) {
+        LocalDate startDate = LocalDate.now().withDayOfMonth(1);
+        LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+        return productStockRepository.getCurrentMonthData(username, startDate, endDate);
+    }
+
+    public List<ProductStock> getDatewiseStockLeger(String username, LocalDate startDate, LocalDate endDate) {
+        return productStockRepository.getCurrentMonthData(username, startDate, endDate);
+    }
+
 
 }

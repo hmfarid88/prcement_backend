@@ -29,6 +29,8 @@ import com.example.bake_boss_backend.repository.RetailerInfoRepository;
 import com.example.bake_boss_backend.repository.RetailerPaymentRepository;
 import com.example.bake_boss_backend.repository.UserInfoRepository;
 
+import jakarta.transaction.Transactional;
+
 @Service
 public class RetailerBalanceService {
     @Autowired
@@ -547,39 +549,94 @@ public class RetailerBalanceService {
 
     }
     
-    public RetailerInfo updateRetailerInfo(Long id, RetailerInfo updatedRetailerInfo) {
-        Optional<RetailerInfo> existingRetailerOpt = retailerInfoRepository.findById(id);
+    // public RetailerInfo updateRetailerInfo(Long id, RetailerInfo updatedRetailerInfo) {
+    //     Optional<RetailerInfo> existingRetailerOpt = retailerInfoRepository.findById(id);
 
-        if (existingRetailerOpt.isPresent()) {
-            RetailerInfo existingRetailer = existingRetailerOpt.get();
+    //     if (existingRetailerOpt.isPresent()) {
+    //         RetailerInfo existingRetailer = existingRetailerOpt.get();
 
-            // Check if the updated retailer name already exists (excluding the current
-            // retailer)
-            boolean retailerNameExists = retailerInfoRepository.existsByRetailerNameAndIdNot(
-                    updatedRetailerInfo.getRetailerName(), id);
+    //         // Check if the updated retailer name already exists (excluding the current
+    //         // retailer)
+    //         boolean retailerNameExists = retailerInfoRepository.existsByRetailerNameAndIdNot(
+    //                 updatedRetailerInfo.getRetailerName(), id);
 
-            if (retailerNameExists) {
+    //         if (retailerNameExists) {
 
-                throw new RuntimeException("Retailer name '" + updatedRetailerInfo.getRetailerName()
-                        + "' already exists. Update failed.");
-            }
+    //             throw new RuntimeException("Retailer name '" + updatedRetailerInfo.getRetailerName()
+    //                     + "' already exists. Update failed.");
+    //         }
 
-            // Update retailer info
-            existingRetailer.setCategory(updatedRetailerInfo.getCategory());
-            existingRetailer.setRetailerName(updatedRetailerInfo.getRetailerName());
-            existingRetailer.setRetailerCode(updatedRetailerInfo.getRetailerCode());
-            existingRetailer.setThanaName(updatedRetailerInfo.getThanaName());
-            existingRetailer.setZillaName(updatedRetailerInfo.getZillaName());
-            existingRetailer.setAreaName(updatedRetailerInfo.getAreaName());
-            existingRetailer.setMobileNumber(updatedRetailerInfo.getMobileNumber());
-            existingRetailer.setSalesPerson(updatedRetailerInfo.getSalesPerson());
-            existingRetailer.setStatus(updatedRetailerInfo.getStatus());
+    //         // Update retailer info
+    //         existingRetailer.setCategory(updatedRetailerInfo.getCategory());
+    //         existingRetailer.setRetailerName(updatedRetailerInfo.getRetailerName());
+    //         existingRetailer.setRetailerCode(updatedRetailerInfo.getRetailerCode());
+    //         existingRetailer.setThanaName(updatedRetailerInfo.getThanaName());
+    //         existingRetailer.setZillaName(updatedRetailerInfo.getZillaName());
+    //         existingRetailer.setAreaName(updatedRetailerInfo.getAreaName());
+    //         existingRetailer.setMobileNumber(updatedRetailerInfo.getMobileNumber());
+    //         existingRetailer.setSalesPerson(updatedRetailerInfo.getSalesPerson());
+    //         existingRetailer.setStatus(updatedRetailerInfo.getStatus());
 
-            return retailerInfoRepository.save(existingRetailer);
-        } else {
-            throw new RuntimeException("Retailer not found with ID: " + id);
+    //         return retailerInfoRepository.save(existingRetailer);
+    //     } else {
+    //         throw new RuntimeException("Retailer not found with ID: " + id);
+    //     }
+    // }
+
+@Transactional
+public RetailerInfo updateRetailerInfo(Long id, RetailerInfo updatedRetailerInfo) {
+
+    Optional<RetailerInfo> existingRetailerOpt = retailerInfoRepository.findById(id);
+
+    if (existingRetailerOpt.isPresent()) {
+
+        RetailerInfo existingRetailer = existingRetailerOpt.get();
+
+        // store old retailer name
+        String oldRetailerName = existingRetailer.getRetailerName();
+
+        // check duplicate name
+        boolean retailerNameExists =
+                retailerInfoRepository.existsByRetailerNameAndIdNot(
+                        updatedRetailerInfo.getRetailerName(),
+                        id
+                );
+
+        if (retailerNameExists) {
+            throw new RuntimeException(
+                    "Retailer name '" +
+                    updatedRetailerInfo.getRetailerName() +
+                    "' already exists. Update failed."
+            );
         }
+
+        // update retailer info
+        existingRetailer.setCategory(updatedRetailerInfo.getCategory());
+        existingRetailer.setRetailerName(updatedRetailerInfo.getRetailerName());
+        existingRetailer.setRetailerCode(updatedRetailerInfo.getRetailerCode());
+        existingRetailer.setThanaName(updatedRetailerInfo.getThanaName());
+        existingRetailer.setZillaName(updatedRetailerInfo.getZillaName());
+        existingRetailer.setAreaName(updatedRetailerInfo.getAreaName());
+        existingRetailer.setMobileNumber(updatedRetailerInfo.getMobileNumber());
+        existingRetailer.setSalesPerson(updatedRetailerInfo.getSalesPerson());
+        existingRetailer.setStatus(updatedRetailerInfo.getStatus());
+
+        // save retailer first
+        RetailerInfo savedRetailer = retailerInfoRepository.save(existingRetailer);
+
+        // update related tables
+        productStockrepository.updateCustomerName(oldRetailerName, updatedRetailerInfo.getRetailerName());
+
+        retailerPaymentRepository.updateRetailerName(oldRetailerName, updatedRetailerInfo.getRetailerName());
+
+        retailerCommissionRepository.updateRetailerName(oldRetailerName, updatedRetailerInfo.getRetailerName());
+
+        return savedRetailer;
+
+    } else {
+        throw new RuntimeException("Retailer not found with ID: " + id);
     }
+}
 
     public EmployeeInfo updateEmployeeInfo(Long id, EmployeeInfo updatedEmployeeInfo) {
         Optional<EmployeeInfo> existingRetailerOpt = employeeInfoRepository.findById(id);

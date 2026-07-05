@@ -7,6 +7,7 @@ import lombok.Data;
 @AllArgsConstructor
 public class DailyWarehouseStockDTO {
     private String warehouse;
+    private String category;
     private String productName;
     private Double previousQty;
     private Double todayEntryQty;

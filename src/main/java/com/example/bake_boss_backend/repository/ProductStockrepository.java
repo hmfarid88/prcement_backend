@@ -17,12 +17,67 @@ import com.example.bake_boss_backend.dto.SupplierDetailsDTO;
 import com.example.bake_boss_backend.dto.TransportDetailsDTO;
 import com.example.bake_boss_backend.entity.ProductStock;
 
+import jakarta.transaction.Transactional;
+
 public interface ProductStockrepository extends JpaRepository<ProductStock, Long> {
 
-        Optional<ProductStock> findTopByProductNameAndUsernameOrderByProductIdDesc(String productName, String username);
+        Optional<ProductStock> findTopByCategoryAndProductNameAndUsernameOrderByProductIdDesc(String category,
+                        String productName, String username);
 
-        @Query("SELECT ps FROM ProductStock ps WHERE ps.username=:username AND ps.productId IN " +
-                        "(SELECT MAX(ps2.productId) FROM ProductStock ps2 GROUP BY ps2.productName)")
+        // @Query("SELECT ps FROM ProductStock ps WHERE ps.username=:username AND
+        // ps.productId IN " +
+        // "(SELECT MAX(ps2.productId) FROM ProductStock ps2 GROUP BY ps2.productName)")
+        // List<ProductStock>
+        // findLatestProductStockForEachProductName(@Param("username") String username);
+
+        // @Query(value = """
+        // SELECT ps.*
+        // FROM product_stock ps
+        // JOIN (
+        // SELECT category, product_name,
+        // MAX(date) AS max_date
+        // FROM product_stock
+        // WHERE username = :username
+        // GROUP BY category, product_name
+        // ) d
+        // ON ps.product_name = d.product_name
+        // AND ps.date = d.max_date
+        // WHERE ps.username = :username
+        // AND ps.product_id = (
+        // SELECT MAX(ps2.product_id)
+        // FROM product_stock ps2
+        // WHERE ps2.category = ps.category
+        // AND ps2.product_name = ps.product_name
+        // AND ps2.date = ps.date
+        // AND ps2.username = :username
+        // )
+        // """, nativeQuery = true)
+        // List<ProductStock>
+        // findLatestProductStockForEachProductName(@Param("username") String username);
+        @Query(value = """
+                        SELECT ps.*
+                        FROM product_stock ps
+                        JOIN (
+                            SELECT category,
+                                   product_name,
+                                   MAX(date) AS max_date
+                            FROM product_stock
+                            WHERE username = :username
+                            GROUP BY category, product_name
+                        ) d
+                        ON ps.category = d.category
+                        AND ps.product_name = d.product_name
+                        AND ps.date = d.max_date
+                        WHERE ps.username = :username
+                        AND ps.product_id = (
+                            SELECT MAX(ps2.product_id)
+                            FROM product_stock ps2
+                            WHERE ps2.category = ps.category
+                              AND ps2.product_name = ps.product_name
+                              AND ps2.date = ps.date
+                              AND ps2.username = :username
+                        )
+                        """, nativeQuery = true)
         List<ProductStock> findLatestProductStockForEachProductName(@Param("username") String username);
 
         @Query("""
@@ -79,6 +134,7 @@ public interface ProductStockrepository extends JpaRepository<ProductStock, Long
         @Query(value = """
                         SELECT
                             ps.warehouse,
+                            ps.category,
                             ps.product_name,
 
                             COALESCE((
@@ -120,13 +176,12 @@ public interface ProductStockrepository extends JpaRepository<ProductStock, Long
 
                         FROM product_stock ps
                         WHERE ps.username = :username
-                        GROUP BY ps.warehouse, ps.product_name ORDER BY ps.product_name;
+                        GROUP BY ps.warehouse, ps.category, ps.product_name ORDER BY ps.category;
                         """, nativeQuery = true)
         List<Object[]> getWarehouseDailyStock(
                         @Param("username") String username,
                         @Param("date") LocalDate date);
 
-       
         @Query("""
                             SELECT new com.example.bake_boss_backend.dto.ProductRetailerDTO(
                                 ps.date,
@@ -153,17 +208,18 @@ public interface ProductStockrepository extends JpaRepository<ProductStock, Long
                         LocalDate startDate, LocalDate endDate, String username
 
         );
-       
+
         @Query("SELECT ps FROM ProductStock ps JOIN RetailerInfo ri ON ps.customer = ri.retailerName WHERE ri.salesPerson = :username AND ps.status='sold' AND YEAR(ps.date) = :year AND MONTH(ps.date) = :month ORDER BY ps.date")
-        List<ProductStock> findProductBySalesPerson(@Param("year") int year, @Param("month") int month, @Param("username") String username);
+        List<ProductStock> findProductBySalesPerson(@Param("year") int year, @Param("month") int month,
+                        @Param("username") String username);
 
         @Query("SELECT ps FROM ProductStock ps JOIN RetailerInfo ri ON ps.customer = ri.retailerName WHERE ri.salesPerson = :username AND ps.status='sold' AND ps.date BETWEEN :startDate AND :endDate ORDER BY ps.date")
         List<ProductStock> findDatewiseProductBySalesPerson(String username, LocalDate startDate, LocalDate endDate);
 
-        @Query("SELECT ps FROM ProductStock ps WHERE ps.status='stored' AND YEAR(ps.date) = :year AND MONTH(ps.date) = :month AND ps.username=:username ORDER BY ps.date, ps.productName")
+        @Query("SELECT ps FROM ProductStock ps WHERE ps.status='stored' AND YEAR(ps.date) = :year AND MONTH(ps.date) = :month AND ps.username=:username ORDER BY ps.supplier, ps.productName, ps.date")
         List<ProductStock> findProductByUsername(@Param("year") int year, @Param("month") int month, @Param("username") String username);
 
-        @Query("SELECT ps FROM ProductStock ps WHERE ps.status='stored' AND  ps.username=:username AND ps.date BETWEEN :startDate AND :endDate ORDER BY ps.date, ps.productName")
+        @Query("SELECT ps FROM ProductStock ps WHERE ps.status='stored' AND  ps.username=:username AND ps.date BETWEEN :startDate AND :endDate ORDER BY ps.supplier, ps.productName, ps.date")
         List<ProductStock> findDatewiseProductByUsername(String username, LocalDate startDate, LocalDate endDate);
 
         List<ProductStock> findByUsernameAndProductName(String username, String oldItemName);
@@ -196,31 +252,58 @@ public interface ProductStockrepository extends JpaRepository<ProductStock, Long
         @Query("SELECT SUM(ps.productQty) FROM ProductStock ps WHERE ps.status = 'sold' AND ps.date = CURRENT_DATE")
         Double findTotalSoldProductQtyToday();
 
-        @Query("SELECT ps.remainingQty FROM ProductStock ps " +
-                        "WHERE ps.username = :username AND ps.productName = :productName " +
-                        "ORDER BY ps.productId DESC LIMIT 1")
-        Double findLastRemainingQtyByUsernameAndProductName(@Param("username") String username,
+        // @Query("SELECT ps.remainingQty FROM ProductStock ps " +
+        // "WHERE ps.username = :username AND ps.productName = :productName " +
+        // "ORDER BY ps.productId DESC LIMIT 1")
+        // Double findLastRemainingQtyByUsernameAndProductName(@Param("username") String
+        // username, @Param("productName") String productName);
+        @Query("""
+                            SELECT ps.remainingQty
+                            FROM ProductStock ps
+                            WHERE ps.productId = (
+                                SELECT MAX(p2.productId)
+                                FROM ProductStock p2
+                                WHERE p2.username = :username
+                                  AND p2.productName = :productName
+                                  AND p2.category = :category
+                                  AND p2.date = (
+                                      SELECT MAX(p3.date)
+                                      FROM ProductStock p3
+                                      WHERE p3.username = :username
+                                        AND p3.productName = :productName
+                                        AND p3.category = :category
+                                  )
+                            )
+                        """)
+        Double findLastRemainingQtyByUsernameAndCategoryAndProductName(
+                        @Param("category") String category,
+                        @Param("username") String username,
                         @Param("productName") String productName);
 
         @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty*ps.dpRate, 0.0, 0.0, 0.0) FROM ProductStock ps WHERE ps.status='sold' AND ps.customer = :retailerName AND (YEAR(ps.date) < :year OR (YEAR(ps.date) = :year AND MONTH(ps.date) < :month))")
-        List<RetailerDetailsDTO> findProductDetailsByUsernameAndRetailerNameBeforemonth(String retailerName, int year, int month);
+        List<RetailerDetailsDTO> findProductDetailsByUsernameAndRetailerNameBeforemonth(String retailerName, int year,
+                        int month);
 
         @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty*ps.dpRate, 0.0, 0.0, 0.0) FROM ProductStock ps WHERE ps.status='sold' AND ps.customer = :retailerName AND ps.date < :startDate")
-        List<RetailerDetailsDTO> findProductDetailsByUsernameAndRetailerNameBeforeDate(String retailerName, LocalDate startDate);
+        List<RetailerDetailsDTO> findProductDetailsByUsernameAndRetailerNameBeforeDate(String retailerName,
+                        LocalDate startDate);
 
         @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty*ps.dpRate, 0.0, 0.0, 0.0) FROM ProductStock ps WHERE ps.status='sold' AND ps.customer = :retailerName AND YEAR(ps.date) = :year AND MONTH(ps.date) = :month")
-        List<RetailerDetailsDTO> findProductDetailsByUsernameAndRetailerNameCurrentmonth(String retailerName, int year, int month);
+        List<RetailerDetailsDTO> findProductDetailsByUsernameAndRetailerNameCurrentmonth(String retailerName, int year,
+                        int month);
 
         @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty*ps.dpRate, 0.0, 0.0, 0.0) FROM ProductStock ps WHERE ps.status='sold' AND ps.customer = :retailerName AND ps.date BETWEEN :startDate AND :endDate")
-        List<RetailerDetailsDTO> findProductDetailsByUsernameAndRetailerNameDatetodate(String retailerName, LocalDate startDate, LocalDate endDate);
-       
-        @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty*ps.dpRate, 0.0, 0.0, 0.0) FROM ProductStock ps JOIN RetailerInfo ri ON ps.customer = ri.retailerName WHERE ri.salesPerson = :salesPerson AND ps.customer = :retailerName AND ps.status='sold' AND YEAR(ps.date) = :year AND MONTH(ps.date) = :month")
-        List<RetailerDetailsDTO> findProductDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName, int year, int month);
-        
-        @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty*ps.dpRate, 0.0, 0.0, 0.0) FROM ProductStock ps JOIN RetailerInfo ri ON ps.customer = ri.retailerName WHERE ri.salesPerson = :salesPerson AND ps.customer = :retailerName AND ps.status='sold' AND ps.date between :startDate AND :endDate")
-        List<RetailerDetailsDTO> findDatewiseProductDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName, LocalDate startDate, LocalDate endDate);
+        List<RetailerDetailsDTO> findProductDetailsByUsernameAndRetailerNameDatetodate(String retailerName,
+                        LocalDate startDate, LocalDate endDate);
 
-       
+        @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty*ps.dpRate, 0.0, 0.0, 0.0) FROM ProductStock ps JOIN RetailerInfo ri ON ps.customer = ri.retailerName WHERE ri.salesPerson = :salesPerson AND ps.customer = :retailerName AND ps.status='sold' AND YEAR(ps.date) = :year AND MONTH(ps.date) = :month")
+        List<RetailerDetailsDTO> findProductDetailsBySalesPersonAndRetailerName(String salesPerson, String retailerName,
+                        int year, int month);
+
+        @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty*ps.dpRate, 0.0, 0.0, 0.0) FROM ProductStock ps JOIN RetailerInfo ri ON ps.customer = ri.retailerName WHERE ri.salesPerson = :salesPerson AND ps.customer = :retailerName AND ps.status='sold' AND ps.date between :startDate AND :endDate")
+        List<RetailerDetailsDTO> findDatewiseProductDetailsBySalesPersonAndRetailerName(String salesPerson,
+                        String retailerName, LocalDate startDate, LocalDate endDate);
+
         @Query("""
                         SELECT COALESCE(SUM(ps.productQty * ps.purchasePrice), 0)
                         FROM ProductStock ps
@@ -243,10 +326,12 @@ public interface ProductStockrepository extends JpaRepository<ProductStock, Long
                         LocalDate startDate, LocalDate endDate);
 
         @Query("SELECT new com.example.bake_boss_backend.dto.TransportDetailsDTO(ps.date, ps.truckNo, SUM(ps.productQty), SUM(ps.rent), 0.0) FROM ProductStock ps WHERE ps.username = :username AND ps.status='sold' AND ps.transport = :transport AND YEAR(ps.date) = :year AND MONTH(ps.date) = :month  GROUP BY ps.date, ps.truckNo")
-        List<TransportDetailsDTO> findRentDetailsByUsernameAndSupplierName(String username, String transport, int year, int month);
+        List<TransportDetailsDTO> findRentDetailsByUsernameAndSupplierName(String username, String transport, int year,
+                        int month);
 
         @Query("SELECT new com.example.bake_boss_backend.dto.TransportDetailsDTO(ps.date, ps.truckNo, SUM(ps.productQty), SUM(ps.rent), 0.0) FROM ProductStock ps WHERE ps.username = :username AND ps.status='sold' AND ps.transport = :transport AND ps.date BETWEEN :startDate AND :endDate  GROUP BY ps.date, ps.truckNo")
-        List<TransportDetailsDTO> findDatewiseRentDetailsByUsernameAndSupplierName(String username, String transport, LocalDate startDate, LocalDate endDate);
+        List<TransportDetailsDTO> findDatewiseRentDetailsByUsernameAndSupplierName(String username, String transport,
+                        LocalDate startDate, LocalDate endDate);
 
         @Modifying
         @Query("UPDATE ProductStock s SET s.remainingQty = s.remainingQty - :qtyDifference " +
@@ -349,30 +434,48 @@ public interface ProductStockrepository extends JpaRepository<ProductStock, Long
                         @Param("startDate") LocalDate startDate,
                         @Param("endDate") LocalDate endDate);
 
-@Query("SELECT COALESCE(SUM(p.costPrice*p.productQty), 0) FROM ProductStock p WHERE p.supplier = 'opening'")
-    Double findTotalOpeningStock();
+        @Query("SELECT COALESCE(SUM(p.costPrice*p.productQty), 0) FROM ProductStock p WHERE p.supplier = 'opening'")
+        Double findTotalOpeningStock();
 
-@Query("""
-    SELECT COALESCE(SUM(p.productQty * p.dpRate), 0)
-    FROM ProductStock p
-    WHERE p.status = 'sold'
-  """)
-Double getTotalSoldValueByRetailer();
+        @Query("""
+                          SELECT COALESCE(SUM(p.productQty * p.dpRate), 0)
+                          FROM ProductStock p
+                          WHERE p.status = 'sold'
+                        """)
+        Double getTotalSoldValueByRetailer();
 
-@Query("""
-    SELECT COALESCE(SUM(p.productQty * p.purchasePrice), 0)
-    FROM ProductStock p
-    WHERE p.status = 'stored' AND p.supplier!='opening'
-  """)
-Double getTotalStockValue();
+        @Query("""
+                          SELECT COALESCE(SUM(p.productQty * p.purchasePrice), 0)
+                          FROM ProductStock p
+                          WHERE p.status = 'stored' AND p.supplier!='opening'
+                        """)
+        Double getTotalStockValue();
 
+        @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty * ps.dpRate, 0.0, 0.0, 0.0) FROM ProductStock ps JOIN RetailerInfo ri ON ps.customer = ri.retailerName WHERE ri.salesPerson = :salesPerson AND ps.customer = :retailerName AND ps.status = 'sold' AND (YEAR(ps.date) <= :year OR (YEAR(ps.date) = :year AND MONTH(ps.date) < :month))")
+        List<RetailerDetailsDTO> findProductDetailsBySalesPersonAndRetailerNameBeforemonth(String salesPerson,
+                        String retailerName, int year, int month);
 
-@Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty * ps.dpRate, 0.0, 0.0, 0.0) FROM ProductStock ps JOIN RetailerInfo ri ON ps.customer = ri.retailerName WHERE ri.salesPerson = :salesPerson AND ps.customer = :retailerName AND ps.status = 'sold' AND (YEAR(ps.date) <= :year OR (YEAR(ps.date) = :year AND MONTH(ps.date) < :month))")
-List<RetailerDetailsDTO> findProductDetailsBySalesPersonAndRetailerNameBeforemonth(String salesPerson, String retailerName, int year, int month);
+        @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty * ps.dpRate, 0.0, 0.0, 0.0) FROM ProductStock ps JOIN RetailerInfo ri ON ps.customer = ri.retailerName WHERE ri.salesPerson = :salesPerson AND ps.customer = :retailerName AND ps.status = 'sold' AND ps.date < :startDate")
+        List<RetailerDetailsDTO> findProductDetailsBySalesPersonAndRetailerNameBeforeDate(
+                        @Param("salesPerson") String salesPerson,
+                        @Param("retailerName") String retailerName,
+                        @Param("startDate") LocalDate startDate);
 
-   @Query("SELECT new com.example.bake_boss_backend.dto.RetailerDetailsDTO(ps.date, ps.note, ps.productName, ps.productQty, ps.dpRate, ps.productQty * ps.dpRate, 0.0, 0.0, 0.0) FROM ProductStock ps JOIN RetailerInfo ri ON ps.customer = ri.retailerName WHERE ri.salesPerson = :salesPerson AND ps.customer = :retailerName AND ps.status = 'sold' AND ps.date < :startDate")
-    List<RetailerDetailsDTO> findProductDetailsBySalesPersonAndRetailerNameBeforeDate(
-            @Param("salesPerson") String salesPerson,
-            @Param("retailerName") String retailerName,
-            @Param("startDate") LocalDate startDate);
+        @Modifying
+        @Transactional
+        @Query("UPDATE ProductStock p SET p.customer = :newName WHERE p.customer = :oldName")
+        void updateCustomerName(@Param("oldName") String oldName, @Param("newName") String newName);
+
+        @Query("""
+                            SELECT p
+                            FROM ProductStock p
+                            WHERE p.username = :username
+                            AND p.date >= :startDate
+                            AND p.date <= :endDate
+                            ORDER BY p.date ASC
+                        """)
+        List<ProductStock> getCurrentMonthData(
+                        @Param("username") String username,
+                        @Param("startDate") LocalDate startDate,
+                        @Param("endDate") LocalDate endDate);
 }

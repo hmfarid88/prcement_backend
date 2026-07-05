@@ -33,6 +33,7 @@ public class OrderInfo {
     private LocalDate date;
     private String retailer;
     private String orderNote;
+    private String category;
     private String productName;
     private Double saleRate;
     private Double orderQty;

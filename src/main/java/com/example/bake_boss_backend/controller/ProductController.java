@@ -132,7 +132,6 @@ public class ProductController {
     @Autowired
     private ExpenseNameRepository expenseNameRepository;
 
-  
     @PostMapping("/addProductName")
     public ResponseEntity<?> addProduct(@RequestBody ProductName productName) {
         if (productNameRepository.existsByUsernameAndProductName(productName.getUsername(),
@@ -468,8 +467,8 @@ public class ProductController {
     public List<ProductStock> saveProducts(@RequestBody List<ProductStock> allItems) {
         for (ProductStock newItem : allItems) {
             Optional<ProductStock> latestProductStockOpt = productStockrepository
-                    .findTopByProductNameAndUsernameOrderByProductIdDesc(newItem.getProductName(),
-                            newItem.getUsername());
+                    .findTopByCategoryAndProductNameAndUsernameOrderByProductIdDesc(newItem.getCategory(),
+                            newItem.getProductName(), newItem.getUsername());
             if (latestProductStockOpt.isPresent()) {
                 ProductStock latestProductStock = latestProductStockOpt.get();
                 Double newTotalQty = latestProductStock.getRemainingQty() + newItem.getProductQty();
@@ -499,8 +498,8 @@ public class ProductController {
         for (ProductStock newItem : allItems) {
             // Update the ProductStock as you are already doing
             Optional<ProductStock> latestProductStockOpt = productStockrepository
-                    .findTopByProductNameAndUsernameOrderByProductIdDesc(newItem.getProductName(),
-                            newItem.getUsername());
+                    .findTopByCategoryAndProductNameAndUsernameOrderByProductIdDesc(newItem.getCategory(),
+                            newItem.getProductName(), newItem.getUsername());
 
             if (latestProductStockOpt.isPresent()) {
                 ProductStock latestProductStock = latestProductStockOpt.get();
@@ -650,8 +649,9 @@ public class ProductController {
     }
 
     @GetMapping("findLastQty")
-    public Double getLastRemainingQty(String username, String productName) {
-        return productStockrepository.findLastRemainingQtyByUsernameAndProductName(username, productName);
+    public Double getLastRemainingQty(String category, String username, String productName) {
+        return productStockrepository.findLastRemainingQtyByUsernameAndCategoryAndProductName(category, username,
+                productName);
     }
 
     @GetMapping("/getSaleInfo/{productId}")
@@ -682,5 +682,15 @@ public class ProductController {
     @GetMapping("/datewise-sr-sale-summary")
     public List<MonthlySrSaleDTO> getDatewiseMonthlySRSale(String username, LocalDate startDate, LocalDate endDate) {
         return productStockService.getDatewiseMonthlySrSale(username, startDate, endDate);
+    }
+
+    @GetMapping("/getCurrentMonthStockLedger")
+    public List<ProductStock> getCurrentMonthProductStock(@RequestParam String username) {
+        return productStockService.getCurrentMonthData(username);
+    }
+
+    @GetMapping("/getDatewiseStockLedger")
+    public List<ProductStock> getDatewiseProductStock(@RequestParam String username, @RequestParam LocalDate startDate, @RequestParam LocalDate endDate) {
+        return productStockService.getDatewiseStockLeger(username, startDate, endDate);
     }
 }
