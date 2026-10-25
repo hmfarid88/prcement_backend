@@ -12,6 +12,8 @@ public class DailyWarehouseStockDTO {
     private Double previousQty;
     private Double todayEntryQty;
     private Double todaySaleQty;
+    private Double todayTransferInQty;
+    private Double todayTransferOutQty;
     private Double presentQty;
     private Double costPrice;
     private Double totalValue;

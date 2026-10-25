@@ -19,7 +19,7 @@ import com.example.bake_boss_backend.service.SupplierBalanceService;
 @RestController
 @RequestMapping("/supplierBalance")
 public class SupplierBalanceController {
-     @Autowired
+    @Autowired
     private SupplierBalanceService supplierBalanceService;
 
     @GetMapping("/supplier/balance")
@@ -27,33 +27,37 @@ public class SupplierBalanceController {
         return supplierBalanceService.calculateSuppliersBalanceByUsername(username);
     }
 
-      @GetMapping("/supplier-details")
-    public List<SupplierDetailsDTO> getDatewiseDetailsBySupplierAndUsername(@RequestParam String username, @RequestParam String supplierName){
+    @GetMapping("/supplier-details")
+    public List<SupplierDetailsDTO> getDatewiseDetailsBySupplierAndUsername(@RequestParam String username,
+            @RequestParam String supplierName) {
         return supplierBalanceService.getDetailsBySupplierAndUsername(username, supplierName);
     }
 
-      @GetMapping("/datewise-supplier-details")
-    public List<SupplierDetailsDTO> getDatewiseSupplierDetails(@RequestParam String username, @RequestParam String supplierName, LocalDate startDate, LocalDate endDate){
-        return supplierBalanceService.getDatewiseDetailsBySupplierAndUsername(username, supplierName, startDate, endDate);
+    @GetMapping("/datewise-supplier-details")
+    public List<SupplierDetailsDTO> getDatewiseSupplierDetails(@RequestParam String username,
+            @RequestParam String supplierName, LocalDate startDate, LocalDate endDate) {
+        return supplierBalanceService.getDatewiseDetailsBySupplierAndUsername(username, supplierName, startDate,
+                endDate);
     }
 
-      @GetMapping("/transport/balance")
+    @GetMapping("/transport/balance")
     public List<TransportBalanceDTO> getTransportBalanceByUsername(@RequestParam String username) {
         return supplierBalanceService.calculateTransportBalanceByUsername(username);
     }
 
-    
     @GetMapping("/transport-details")
-    public List<TransportDetailsDTO> getDetailsByTransportAndUsername(@RequestParam String username, @RequestParam String transport){
+    public List<TransportDetailsDTO> getDetailsByTransportAndUsername(@RequestParam String username,
+            @RequestParam String transport) {
         return supplierBalanceService.getDetailsByTransportAndUsername(username, transport);
     }
 
     @GetMapping("/datewise-transport-details")
-    public List<TransportDetailsDTO> getDatewiseDetailsByTransportAndUsername(@RequestParam String username, @RequestParam String transport, LocalDate startDate, LocalDate endDate){
+    public List<TransportDetailsDTO> getDatewiseDetailsByTransportAndUsername(@RequestParam String username,
+            @RequestParam String transport, LocalDate startDate, LocalDate endDate) {
         return supplierBalanceService.getDatewiseDetailsByTransportAndUsername(username, transport, startDate, endDate);
     }
 
-     @GetMapping("/supplierDue")
+    @GetMapping("/supplierDue")
     public ResponseEntity<Double> getSupplierDue() {
         Double due = supplierBalanceService.getSupplierDue();
         return ResponseEntity.ok(due);

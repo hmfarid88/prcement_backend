@@ -2,7 +2,9 @@ package com.example.bake_boss_backend.service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +15,8 @@ import com.example.bake_boss_backend.dto.DailyWarehouseStockDTO;
 import com.example.bake_boss_backend.dto.MonthlySaleDTO;
 import com.example.bake_boss_backend.dto.MonthlySrSaleDTO;
 import com.example.bake_boss_backend.dto.ProductRetailerDTO;
+import com.example.bake_boss_backend.dto.StockLedgerDTO;
+import com.example.bake_boss_backend.dto.TransferStockRequest;
 import com.example.bake_boss_backend.entity.OrderInfo;
 import com.example.bake_boss_backend.entity.ProductStock;
 import com.example.bake_boss_backend.repository.OrderInfoRepository;
@@ -60,6 +64,18 @@ public class ProductStockService {
         return productStockRepository.findDatewiseProductByUsername(username, startDate, endDate);
     }
 
+    public List<ProductStock> getMonthlyTransferProductStock(String username) {
+        LocalDate now = LocalDate.now();
+        int year = now.getYear();
+        int month = now.getMonthValue();
+        return productStockRepository.findMonthlyTransferProductStock(username, year, month);
+    }
+
+    public List<ProductStock> getDatewiseTransferProductStock(
+            String username, LocalDate startDate, LocalDate endDate) {
+        return productStockRepository.findDatewiseTransferProductStock(username, startDate, endDate);
+    }
+
     public List<MonthlySaleDTO> getDatewiseMonthlySale(String username, LocalDate startDate, LocalDate endDate) {
         return productStockRepository.findMonthlySaleSummary(username, startDate, endDate);
     }
@@ -76,6 +92,100 @@ public class ProductStockService {
         return orderInfoRepository.findByOrderId(orderId);
     }
 
+   
+@Transactional
+public List<ProductStock> transferStock(TransferStockRequest request) {
+
+    Double quantity = request.getTransferQty();
+
+    if (quantity == null || !Double.isFinite(quantity) || quantity <= 0) {
+        throw new IllegalArgumentException(
+                "Transfer quantity must be greater than zero.");
+    }
+   
+    String sourceWarehouse = request.getSourceWarehouse().trim();
+    String sourceCategory = request.getSourceCategory().trim();
+    String productName = request.getProductName().trim();
+    String destinationWarehouse = request.getDestinationWarehouse().trim();
+    String destinationCategory = request.getDestinationCategory().trim();
+    String username = request.getUsername().trim();
+
+    // 1. Get total source stock balance
+    double sourceBalance = productStockRepository.getWarehouseProductBalance(
+            username, sourceWarehouse, sourceCategory, productName);
+
+    // 2. Get latest source record for product details
+    ProductStock sourceLatest = productStockRepository
+            .findTopByCategoryAndProductNameAndUsernameOrderByProductIdDesc(
+                    sourceCategory, productName, username)
+            .orElseThrow(() -> new IllegalArgumentException(
+                    "No source product record found for pricing details."));
+
+    // 3. Get destination's total stock balance
+    double destinationBalance = productStockRepository.getWarehouseProductBalance(
+            username, destinationWarehouse, destinationCategory, productName);
+
+    // 4. Get destination's latest record, if available
+    ProductStock destinationLatest = productStockRepository
+            .findTopByCategoryAndProductNameAndUsernameOrderByProductIdDesc(
+                    destinationCategory, productName, username)
+            .orElse(null);
+
+    LocalDate transferDate = request.getDate() == null
+            ? LocalDate.now()
+            : request.getDate();
+
+    // 5. Create source deduction record
+    ProductStock transferOut = new ProductStock();
+    transferOut.setDate(transferDate);
+    transferOut.setCategory(sourceCategory);
+    transferOut.setWarehouse(sourceWarehouse);
+    transferOut.setProductName(productName);
+    transferOut.setUsername(username);
+    transferOut.setCustomer(destinationCategory);
+    transferOut.setSupplier(sourceLatest.getSupplier());
+    transferOut.setPurchasePrice(sourceLatest.getPurchasePrice());
+    transferOut.setCostPrice(sourceLatest.getCostPrice());
+    transferOut.setDpRate(sourceLatest.getDpRate());
+    transferOut.setProductQty(quantity);
+    transferOut.setRemainingQty(sourceBalance - quantity);
+    transferOut.setStatus("sold");
+    transferOut.setNote("Transfer to " + destinationWarehouse + " - " + destinationCategory + ". ");
+
+    // 6. Create destination entry record
+    ProductStock transferIn = new ProductStock();
+    transferIn.setDate(transferDate);
+    transferIn.setCategory(destinationCategory);
+    transferIn.setWarehouse(destinationWarehouse);
+    transferIn.setProductName(productName);
+    transferIn.setUsername(username);
+    transferIn.setProductQty(quantity);
+    transferIn.setRemainingQty(destinationBalance + quantity);
+    transferIn.setStatus("stored");
+    transferIn.setNote("Transfer from " + sourceWarehouse + " - " + sourceCategory + ". ");
+
+    if (destinationLatest != null) {
+        double incomingCost = sourceLatest.getCostPrice() == null
+                ? 0.0 : sourceLatest.getCostPrice();
+
+        double newCost = (incomingCost);
+         
+        transferIn.setCostPrice(newCost);
+        transferIn.setPurchasePrice(sourceLatest.getPurchasePrice());
+        // transferIn.setSupplier(sourceLatest.getSupplier());
+        transferIn.setDpRate(destinationLatest.getDpRate());
+    } else {
+        transferIn.setCostPrice(sourceLatest.getCostPrice());
+        transferIn.setPurchasePrice(sourceLatest.getPurchasePrice());
+        // transferIn.setSupplier(sourceLatest.getSupplier());
+        transferIn.setDpRate(sourceLatest.getDpRate());
+    }
+
+    // 7. Save both records in one transaction
+    return productStockRepository.saveAll(
+            List.of(transferOut, transferIn));
+}
+   
     public Double getTotalSoldProductQtyToday() {
         return productStockRepository.findTotalSoldProductQtyToday();
     }
@@ -222,21 +332,20 @@ public class ProductStockService {
     }
 
     public List<DailyWarehouseStockDTO> getWarehouseDailyReport(String username, LocalDate date) {
-
         List<Object[]> rows = productStockRepository.getWarehouseDailyStock(username, date);
         List<DailyWarehouseStockDTO> list = new ArrayList<>();
-
         for (Object[] r : rows) {
-
             String warehouse = (String) r[0];
             String category = (String) r[1];
             String productName = (String) r[2];
             Double previousQty = ((Number) r[3]).doubleValue();
             Double todayEntryQty = ((Number) r[4]).doubleValue();
             Double todaySaleQty = ((Number) r[5]).doubleValue();
-            Double costPrice = ((Number) r[6]).doubleValue();
-
-            Double presentQty = previousQty + todayEntryQty - todaySaleQty;
+            Double todayTransferInQty = ((Number) r[6]).doubleValue();
+            Double todayTransferOutQty = ((Number) r[7]).doubleValue();
+            Double costPrice = ((Number) r[8]).doubleValue();
+            Double presentQty = previousQty + todayEntryQty - todaySaleQty
+                    + todayTransferInQty - todayTransferOutQty;
             Double totalValue = presentQty * costPrice;
 
             list.add(new DailyWarehouseStockDTO(
@@ -246,23 +355,119 @@ public class ProductStockService {
                     previousQty,
                     todayEntryQty,
                     todaySaleQty,
+                    todayTransferInQty,
+                    todayTransferOutQty,
                     presentQty,
                     costPrice,
                     totalValue));
         }
-
         return list;
     }
 
-    public List<ProductStock> getCurrentMonthData(String username) {
-        LocalDate startDate = LocalDate.now().withDayOfMonth(1);
-        LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
-        return productStockRepository.getCurrentMonthData(username, startDate, endDate);
+    // public List<ProductStock> getCurrentMonthData(String username) {
+    // LocalDate startDate = LocalDate.now().withDayOfMonth(1);
+    // LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+    // return productStockRepository.getCurrentMonthData(username, startDate,
+    // endDate);
+    // }
+
+    // public List<ProductStock> getDatewiseStockLeger(String username, LocalDate
+    // startDate, LocalDate endDate) {
+    // return productStockRepository.getCurrentMonthData(username, startDate,
+    // endDate);
+    // }
+
+    public List<StockLedgerDTO> getStockLedger(String username, LocalDate startDate, LocalDate endDate) {
+
+        // Opening Stock
+        List<Object[]> openingData = productStockRepository.getOpeningStock(username, startDate);
+
+        // Current Transactions
+        List<ProductStock> transactions = productStockRepository.getCurrentMonthData(
+                username,
+                startDate,
+                endDate);
+
+        // Store opening qty
+        Map<String, Double> balanceMap = new HashMap<>();
+
+        for (Object[] row : openingData) {
+
+            String warehouse = (String) row[0];
+            String category = (String) row[1];
+            String product = (String) row[2];
+
+            Double qty = ((Number) row[3]).doubleValue();
+
+            String key = warehouse + "|" + category + "|" + product;
+
+            balanceMap.put(key, qty);
+        }
+
+        List<StockLedgerDTO> result = new ArrayList<>();
+
+        for (ProductStock ps : transactions) {
+
+            String key = ps.getWarehouse()
+                    + "|"
+                    + ps.getCategory()
+                    + "|"
+                    + ps.getProductName();
+
+            double opening = balanceMap.getOrDefault(key, 0.0);
+
+            double stored = 0;
+            double sold = 0;
+            double transferIn = 0;
+            double transferOut = 0;
+
+            if ("stored".equalsIgnoreCase(ps.getStatus())) {
+
+                stored = ps.getProductQty();
+
+            } else if ("sold".equalsIgnoreCase(ps.getStatus())) {
+
+                sold = ps.getProductQty();
+            } else if ("transfer-in".equalsIgnoreCase(ps.getStatus())) {
+
+                transferIn = ps.getProductQty();
+            } else if ("transfer-out".equalsIgnoreCase(ps.getStatus())) {
+
+                transferOut = ps.getProductQty();
+            }
+
+            double closing = opening + stored - sold + transferIn - transferOut;
+
+            StockLedgerDTO dto = new StockLedgerDTO();
+
+            dto.setDate(ps.getDate());
+
+            dto.setWarehouse(ps.getWarehouse());
+
+            dto.setCategory(ps.getCategory());
+
+            dto.setProductName(ps.getProductName());
+
+            dto.setOpeningQty(opening);
+
+            dto.setStoredQty(stored);
+
+            dto.setSoldQty(sold);
+
+            dto.setTransferInQty(transferIn);
+
+            dto.setTransferOutQty(transferOut);
+
+            dto.setClosingQty(closing);
+
+            dto.setCostPrice(ps.getCostPrice());
+
+            result.add(dto);
+
+            // Save latest balance
+            balanceMap.put(key, closing);
+        }
+
+        return result;
     }
-
-    public List<ProductStock> getDatewiseStockLeger(String username, LocalDate startDate, LocalDate endDate) {
-        return productStockRepository.getCurrentMonthData(username, startDate, endDate);
-    }
-
-
 }

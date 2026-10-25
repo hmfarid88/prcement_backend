@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 import com.example.bake_boss_backend.entity.OrderInfo;
 
 public interface OrderInfoRepository extends JpaRepository<OrderInfo, Long> {
-    @Query("SELECT ps.orderId, ps.retailer, ps.productName, ps.orderNote, " +
+    @Query("SELECT ps.orderId, ps.retailer, ps.category, ps.productName, " +
     "CASE WHEN ps.orderQty > COALESCE(ps.deliveredQty, 0) THEN (ps.orderQty - COALESCE(ps.deliveredQty, 0)) ELSE 0 END AS remainingQty " +
     "FROM OrderInfo ps")
 List<Object[]> findAllList();

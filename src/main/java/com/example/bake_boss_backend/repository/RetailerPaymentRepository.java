@@ -255,7 +255,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
                    AND ps.date BETWEEN :startDate AND :endDate
                 WHERE r.category = :category
                   AND r.status = 'Active'
-                GROUP BY r.salesPerson
+                GROUP BY r.salesPerson, r.retailerName 
                 ORDER BY r.salesPerson ASC
             """)
     List<CategoryBalanceDTO> findDatewiseMarketingBalance(
@@ -393,7 +393,7 @@ public interface RetailerPaymentRepository extends JpaRepository<RetailerPayment
                    AND ps.date < :startDate
                 WHERE r.category = :category
                   AND r.status = 'Active'
-                GROUP BY r.salesPerson
+                GROUP BY r.salesPerson, r.retailerName 
                 ORDER BY r.salesPerson ASC
             """)
     List<CategoryBalanceDTO> findMarketOpeningBalanceBeforeDate(

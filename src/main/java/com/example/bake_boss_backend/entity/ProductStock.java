@@ -23,7 +23,9 @@ import lombok.NoArgsConstructor;
         @Index(name = "idx_date", columnList = "date"),
         @Index(name = "idx_username_product", columnList = "username, productName"),
         @Index(name = "idx_username_date", columnList = "username, date"),
-        @Index(name = "idx_username_invoice", columnList = "username, invoiceNo")
+        @Index(name = "idx_username_invoice", columnList = "username, invoiceNo"),
+        @Index(name = "idx_username_customer_status", columnList = "username, customer, status"),
+        @Index(name = "idx_username_retailer", columnList = "username, retailerName")
     }
 )
 @Data

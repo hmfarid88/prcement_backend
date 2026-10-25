@@ -15,6 +15,7 @@ import com.example.bake_boss_backend.dto.CategoryBalanceDTO;
 import com.example.bake_boss_backend.dto.CategoryDebitCreditDTO;
 import com.example.bake_boss_backend.dto.RetailerBalanceDTO;
 import com.example.bake_boss_backend.dto.RetailerDetailsDTO;
+import com.example.bake_boss_backend.dto.SingleRetailerBalanceDTO;
 import com.example.bake_boss_backend.entity.EmployeeInfo;
 import com.example.bake_boss_backend.entity.EmployeePayment;
 import com.example.bake_boss_backend.entity.EmployeeTarget;
@@ -703,5 +704,9 @@ public RetailerInfo updateRetailerInfo(Long id, RetailerInfo updatedRetailerInfo
         Double totalCommission = retailerCommissionRepository.getTotalRetailerCommission();
 
         return totalSoldValue - totalPayment - totalCommission;
+    }
+
+    public SingleRetailerBalanceDTO getRetailerInfo(String retailer, String username) {
+        return productStockrepository.getRetailerBalance(retailer, username);
     }
 }

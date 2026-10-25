@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.bake_boss_backend.dto.CategoryDebitCreditDTO;
 import com.example.bake_boss_backend.dto.RetailerBalanceDTO;
 import com.example.bake_boss_backend.dto.RetailerDetailsDTO;
+import com.example.bake_boss_backend.dto.SingleRetailerBalanceDTO;
 import com.example.bake_boss_backend.entity.EmployeeInfo;
 import com.example.bake_boss_backend.entity.RetailerInfo;
 import com.example.bake_boss_backend.entity.RetailerPayment;
@@ -57,8 +58,7 @@ public class RetailerBalanceController {
     }
 
     @GetMapping("/datewiseMarketingRetailerBalance")
-    public List<CategoryDebitCreditDTO> datewisemarketingBalance(@RequestParam String category, LocalDate startDate,
-            LocalDate endDate) {
+    public List<CategoryDebitCreditDTO> datewisemarketingBalance(@RequestParam String category, LocalDate startDate, LocalDate endDate) {
         return retailerBalanceService.getDatewiseMarketWiseDebitCredit(category, startDate, endDate);
     }
 
@@ -125,6 +125,11 @@ public class RetailerBalanceController {
     public ResponseEntity<Double> getRetailerDue() {
         Double due = retailerBalanceService.getRetailerDue();
         return ResponseEntity.ok(due);
+    }
+
+    @GetMapping("/singleRetailerBalance")
+    public SingleRetailerBalanceDTO getRetailerInfo(@RequestParam String retailer, @RequestParam String username){
+        return retailerBalanceService.getRetailerInfo(retailer, username);
     }
 
 }

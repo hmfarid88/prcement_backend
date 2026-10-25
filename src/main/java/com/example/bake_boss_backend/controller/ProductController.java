@@ -22,6 +22,8 @@ import com.example.bake_boss_backend.dto.DailyWarehouseStockDTO;
 import com.example.bake_boss_backend.dto.MonthlySaleDTO;
 import com.example.bake_boss_backend.dto.MonthlySrSaleDTO;
 import com.example.bake_boss_backend.dto.ProductRetailerDTO;
+import com.example.bake_boss_backend.dto.StockLedgerDTO;
+import com.example.bake_boss_backend.dto.TransferStockRequest;
 import com.example.bake_boss_backend.entity.EmployeeInfo;
 import com.example.bake_boss_backend.entity.EmployeeTarget;
 import com.example.bake_boss_backend.entity.ExpenseName;
@@ -493,6 +495,22 @@ public class ProductController {
         return orderInfoRepository.saveAll(orderInfoList);
     }
 
+    @PostMapping("/transfer-stock")
+    public ResponseEntity<?> transferStock(
+            @RequestBody TransferStockRequest request) {
+
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(productStockService.transferStock(request));
+
+        } catch (IllegalArgumentException e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", e.getMessage());
+
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
     @PostMapping("/productDistribution")
     public List<ProductStock> saveDistribution(@RequestBody List<ProductStock> allItems) {
         for (ProductStock newItem : allItems) {
@@ -618,6 +636,19 @@ public class ProductController {
         return productStockService.getDatewiseProductStock(username, startDate, endDate);
     }
 
+    @GetMapping("/monthly-transfer-product-stock")
+    public List<ProductStock> getMonthlyTransferProductStock(@RequestParam String username) {
+        return productStockService.getMonthlyTransferProductStock(username);
+    }
+
+    @GetMapping("/datewise-transfer-product-stock")
+    public List<ProductStock> getDatewiseTransferProductStock(
+            @RequestParam String username,
+            @RequestParam LocalDate startDate,
+            @RequestParam LocalDate endDate) {
+        return productStockService.getDatewiseTransferProductStock(username, startDate, endDate);
+    }
+
     @GetMapping("/getInvoiceData")
     public List<ProductStock> getInvoiceData(String username, String invoiceNo) {
         return productStockrepository.findByUsernameAndInvoiceNo(username, invoiceNo);
@@ -685,12 +716,15 @@ public class ProductController {
     }
 
     @GetMapping("/getCurrentMonthStockLedger")
-    public List<ProductStock> getCurrentMonthProductStock(@RequestParam String username) {
-        return productStockService.getCurrentMonthData(username);
+    public List<StockLedgerDTO> getCurrentMonthProductStock(@RequestParam String username) {
+        LocalDate startDate = LocalDate.now().withDayOfMonth(1);
+        LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+        return productStockService.getStockLedger(username, startDate, endDate);
     }
 
     @GetMapping("/getDatewiseStockLedger")
-    public List<ProductStock> getDatewiseProductStock(@RequestParam String username, @RequestParam LocalDate startDate, @RequestParam LocalDate endDate) {
-        return productStockService.getDatewiseStockLeger(username, startDate, endDate);
+    public List<StockLedgerDTO> getDatewiseProductStock(@RequestParam String username,
+            @RequestParam LocalDate startDate, @RequestParam LocalDate endDate) {
+        return productStockService.getStockLedger(username, startDate, endDate);
     }
 }
