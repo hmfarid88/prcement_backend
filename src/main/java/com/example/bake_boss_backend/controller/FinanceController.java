@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.bake_boss_backend.dto.DetailsPayReceiveDTO;
 import com.example.bake_boss_backend.dto.FinanceBalanceDTO;
+import com.example.bake_boss_backend.dto.ProfitLossAccountDTO;
 import com.example.bake_boss_backend.dto.ProfitReportDTO;
 import com.example.bake_boss_backend.service.FinanceService;
 import com.example.bake_boss_backend.service.OfficePaymentService;
@@ -55,6 +56,14 @@ public class FinanceController {
             @RequestParam LocalDate from,
             @RequestParam LocalDate to) {
         return profitService.getProfitReport(username, from, to);
+    }
+
+    @GetMapping("/profit-loss-account")
+    public ProfitLossAccountDTO profitLossAccount(
+            @RequestParam String username,
+            @RequestParam LocalDate from,
+            @RequestParam LocalDate to) {
+        return profitService.getProfitLossAccount(username, from, to);
     }
 
    

@@ -5,8 +5,6 @@ import java.time.LocalDate;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -34,7 +32,4 @@ public class RetailerPayment {
     private Double amount;
     private String username;
 
-    // @ManyToOne
-    // @JoinColumn(name = "retailer_id")
-    // private RetailerInfo retailer;
 }
